@@ -31,33 +31,58 @@ const dietaryColor: Record<string, string> = {
 
 const selectClass = 'w-full border border-gray-200 rounded-md px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-orange-400 text-gray-600'
 
-function IngredientsCell({ ingredients, t }: { ingredients: string[], t: (k: any) => string }) {
-  const [open, setOpen] = useState(false)
+function IngredientsCell({ ingredients, title, t }: { ingredients: string[], title: string, t: (k: any) => string }) {
+  const [hover, setHover] = useState(false)
+  const [modal, setModal] = useState(false)
   if (!ingredients || ingredients.length === 0) return <span className="text-gray-300">—</span>
 
   return (
-    <div className="relative inline-block">
-      <button
-        onMouseEnter={() => setOpen(true)}
-        onMouseLeave={() => setOpen(false)}
-        className="text-orange-500 hover:text-orange-600 text-sm font-medium underline decoration-dotted"
-      >
-        {ingredients.length} {t('ingredients')}
-      </button>
-      {open && (
-        <div className="absolute z-50 bottom-full mb-2 left-0 bg-white border border-gray-200 rounded-xl shadow-lg p-3 w-56 text-sm">
-          <p className="font-semibold text-gray-700 mb-2">{t('ingredients')}</p>
-          <ul className="space-y-1 max-h-48 overflow-y-auto">
-            {ingredients.map((ing, i) => (
-              <li key={i} className="text-gray-600 flex items-start gap-1.5">
-                <span className="text-orange-400 mt-1 shrink-0">•</span>
-                {ing}
-              </li>
-            ))}
-          </ul>
+    <>
+      <div className="relative inline-block">
+        <button
+          onMouseEnter={() => setHover(true)}
+          onMouseLeave={() => setHover(false)}
+          onClick={() => setModal(true)}
+          className="text-orange-500 hover:text-orange-600 text-sm font-medium underline decoration-dotted"
+        >
+          {ingredients.length} {t('ingredients')}
+        </button>
+        {hover && !modal && (
+          <div className="absolute z-50 bottom-full mb-2 left-0 bg-white border border-gray-200 rounded-xl shadow-lg p-3 w-56 text-sm pointer-events-none">
+            <p className="text-xs text-gray-400 mb-1">Click to see all</p>
+            <ul className="space-y-1 max-h-36 overflow-hidden">
+              {ingredients.slice(0, 6).map((ing, i) => (
+                <li key={i} className="text-gray-600 flex items-start gap-1.5">
+                  <span className="text-orange-400 mt-1 shrink-0">•</span>
+                  {ing}
+                </li>
+              ))}
+              {ingredients.length > 6 && <li className="text-gray-400 text-xs">+{ingredients.length - 6} more...</li>}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      {modal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4" onClick={() => setModal(false)}>
+          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-gray-900">{title}</h3>
+              <button onClick={() => setModal(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+            </div>
+            <p className="text-xs font-semibold text-orange-500 uppercase tracking-wide mb-3">{t('ingredients')}</p>
+            <ul className="space-y-2 max-h-96 overflow-y-auto">
+              {ingredients.map((ing, i) => (
+                <li key={i} className="text-gray-700 text-sm flex items-start gap-2">
+                  <span className="text-orange-400 font-bold mt-0.5 shrink-0">•</span>
+                  {ing}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       )}
-    </div>
+    </>
   )
 }
 
@@ -245,7 +270,7 @@ export default function HomePage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <IngredientsCell ingredients={recipe.ingredients || []} t={t} />
+                        <IngredientsCell ingredients={recipe.ingredients || []} title={recipe.title} t={t} />
                       </td>
                       <td className="px-4 py-3 text-gray-500 whitespace-nowrap text-xs">
                         {recipe.added_by_name}
