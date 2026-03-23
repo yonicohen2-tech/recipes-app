@@ -20,8 +20,10 @@ export default function AddRecipePage() {
   const [loading, setLoading] = useState(false)
   const [extracting, setExtracting] = useState(false)
   const [extractingUrl, setExtractingUrl] = useState(false)
+  const [extractingText, setExtractingText] = useState(false)
   const [extracted, setExtracted] = useState(false)
   const [findingVideo, setFindingVideo] = useState(false)
+  const [pastedText, setPastedText] = useState('')
   const [error, setError] = useState('')
   const [file, setFile] = useState<File | null>(null)
 
@@ -152,6 +154,45 @@ export default function AddRecipePage() {
       }
     } catch {}
     finally { setFindingVideo(false) }
+  }
+
+  const handleExtractFromText = async () => {
+    if (!pastedText.trim()) return
+    setExtractingText(true)
+    setError('')
+    try {
+      const res = await fetch('/api/extract-from-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: pastedText }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setForm((f) => ({
+          ...f,
+          title: data.title || f.title,
+          description: data.description || f.description,
+          course_type: data.course_type || f.course_type,
+          difficulty: data.difficulty || f.difficulty,
+          prep_time: data.prep_time?.toString() || f.prep_time,
+          cook_time: data.cook_time?.toString() || f.cook_time,
+          dietary_tags: data.dietary_tags || f.dietary_tags,
+          ingredients: data.ingredients || f.ingredients,
+          instructions: data.instructions || f.instructions,
+          servings: data.servings?.toString() || f.servings,
+          notes: data.notes || f.notes,
+        }))
+        setExtracted(true)
+        setPastedText('')
+        if (data.title) findAndSetVideo(data.title)
+      } else {
+        setError(data.error || 'Could not extract recipe from text')
+      }
+    } catch {
+      setError('Failed to extract from text')
+    } finally {
+      setExtractingText(false)
+    }
   }
 
   const toggleDietaryTag = (tag: DietaryTag) => {
@@ -326,6 +367,27 @@ export default function AddRecipePage() {
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
               />
             </div>
+          </div>
+
+          {/* Paste recipe text */}
+          <div className="border border-dashed border-orange-200 rounded-xl p-4 bg-orange-50/30">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Paste recipe text</label>
+            <textarea
+              value={pastedText}
+              onChange={(e) => setPastedText(e.target.value)}
+              rows={4}
+              placeholder="Paste any recipe text here — ingredients, instructions, times... Claude will extract everything automatically."
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none bg-white"
+            />
+            <button
+              type="button"
+              onClick={handleExtractFromText}
+              disabled={!pastedText.trim() || extractingText}
+              className="mt-2 flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              {extractingText ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+              {extractingText ? 'Extracting...' : 'Extract recipe'}
+            </button>
           </div>
 
           {/* File upload */}
