@@ -87,15 +87,16 @@ export default function AddRecipePage() {
     }
   }
 
-  const handleExtractFromUrl = async () => {
-    if (!form.video_url) return
+  const handleExtractFromUrl = async (urlOverride?: string) => {
+    const url = urlOverride || form.video_url
+    if (!url) return
     setExtractingUrl(true)
     setError('')
     try {
       const res = await fetch('/api/extract-from-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: form.video_url }),
+        body: JSON.stringify({ url }),
       })
       const data = await res.json()
       if (res.ok) {
@@ -198,12 +199,11 @@ export default function AddRecipePage() {
 
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('title')} *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('title')}</label>
             <input
               type="text"
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
-              required
               className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
             />
           </div>
@@ -221,7 +221,7 @@ export default function AddRecipePage() {
 
           {/* Course type */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('courseType')} *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('courseType')}</label>
             <select
               value={form.course_type}
               onChange={(e) => setForm({ ...form, course_type: e.target.value as CourseType })}
@@ -254,7 +254,7 @@ export default function AddRecipePage() {
 
           {/* Difficulty */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('difficultyLabel')} *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('difficultyLabel')}</label>
             <select
               value={form.difficulty}
               onChange={(e) => setForm({ ...form, difficulty: e.target.value as Difficulty })}
@@ -267,24 +267,22 @@ export default function AddRecipePage() {
           {/* Times + Servings */}
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('prepTimeLabel')} *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('prepTimeLabel')}</label>
               <input
                 type="number"
                 min="0"
                 value={form.prep_time}
                 onChange={(e) => setForm({ ...form, prep_time: e.target.value })}
-                required
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('cookTimeLabel')} *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('cookTimeLabel')}</label>
               <input
                 type="number"
                 min="0"
                 value={form.cook_time}
                 onChange={(e) => setForm({ ...form, cook_time: e.target.value })}
-                required
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
               />
             </div>
@@ -336,25 +334,27 @@ export default function AddRecipePage() {
           {/* Video URL */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('videoLink')}</label>
-            <div className="flex gap-2">
+            <div className="relative">
               <input
                 type="url"
                 value={form.video_url}
                 onChange={(e) => setForm({ ...form, video_url: e.target.value })}
-                placeholder="https://youtube.com/..."
-                className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                onPaste={(e) => {
+                  const pasted = e.clipboardData.getData('text')
+                  if (pasted.startsWith('http')) {
+                    setTimeout(() => handleExtractFromUrl(pasted), 100)
+                  }
+                }}
+                placeholder="Paste a YouTube or recipe link to auto-fill..."
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
               />
-              <button
-                type="button"
-                onClick={handleExtractFromUrl}
-                disabled={!form.video_url || extractingUrl}
-                className="flex items-center gap-1.5 px-3 py-2 bg-orange-50 hover:bg-orange-100 disabled:opacity-40 text-orange-600 text-sm font-medium rounded-lg border border-orange-200 transition-colors whitespace-nowrap"
-              >
-                {extractingUrl ? <Loader2 size={14} className="animate-spin" /> : <Link2 size={14} />}
-                {extractingUrl ? 'Reading...' : 'Extract recipe'}
-              </button>
+              {extractingUrl && (
+                <div className="absolute right-3 top-3">
+                  <Loader2 size={16} className="animate-spin text-orange-400" />
+                </div>
+              )}
             </div>
-            <p className="text-xs text-gray-400 mt-1">Works best with YouTube. Facebook may require login.</p>
+            <p className="text-xs text-gray-400 mt-1">Paste a link — recipe data will be extracted automatically. Works best with YouTube.</p>
           </div>
 
           {/* Notes */}
