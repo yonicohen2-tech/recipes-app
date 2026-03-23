@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useLang } from '@/lib/context'
 import Navbar from '@/components/Navbar'
 import type { CourseType, DietaryTag, Difficulty } from '@/lib/types'
-import { Upload, Sparkles, Loader2 } from 'lucide-react'
+import { Upload, Sparkles, Loader2, Link2 } from 'lucide-react'
 
 const COURSE_TYPES: CourseType[] = ['appetizer', 'first-course', 'main-course', 'side-dish', 'dessert', 'drink', 'snack']
 const DIETARY_TAGS: DietaryTag[] = ['dairy', 'non-dairy', 'gluten-free', 'vegan', 'vegetarian', 'meat']
@@ -19,6 +19,7 @@ export default function AddRecipePage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [extracting, setExtracting] = useState(false)
+  const [extractingUrl, setExtractingUrl] = useState(false)
   const [extracted, setExtracted] = useState(false)
   const [error, setError] = useState('')
   const [file, setFile] = useState<File | null>(null)
@@ -79,6 +80,41 @@ export default function AddRecipePage() {
       setError('Failed to analyze file')
     } finally {
       setExtracting(false)
+    }
+  }
+
+  const handleExtractFromUrl = async () => {
+    if (!form.video_url) return
+    setExtractingUrl(true)
+    setError('')
+    try {
+      const res = await fetch('/api/extract-from-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: form.video_url }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setForm((f) => ({
+          ...f,
+          title: data.title || f.title,
+          description: data.description || f.description,
+          course_type: data.course_type || f.course_type,
+          difficulty: data.difficulty || f.difficulty,
+          prep_time: data.prep_time?.toString() || f.prep_time,
+          cook_time: data.cook_time?.toString() || f.cook_time,
+          dietary_tags: data.dietary_tags || f.dietary_tags,
+          ingredients: data.ingredients || f.ingredients,
+          instructions: data.instructions || f.instructions,
+        }))
+        setExtracted(true)
+      } else {
+        setError(data.error || 'Could not extract recipe from this link')
+      }
+    } catch {
+      setError('Failed to fetch from this URL')
+    } finally {
+      setExtractingUrl(false)
     }
   }
 
@@ -281,13 +317,25 @@ export default function AddRecipePage() {
           {/* Video URL */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('videoLink')}</label>
-            <input
-              type="url"
-              value={form.video_url}
-              onChange={(e) => setForm({ ...form, video_url: e.target.value })}
-              placeholder="https://youtube.com/..."
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-            />
+            <div className="flex gap-2">
+              <input
+                type="url"
+                value={form.video_url}
+                onChange={(e) => setForm({ ...form, video_url: e.target.value })}
+                placeholder="https://youtube.com/..."
+                className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+              />
+              <button
+                type="button"
+                onClick={handleExtractFromUrl}
+                disabled={!form.video_url || extractingUrl}
+                className="flex items-center gap-1.5 px-3 py-2 bg-orange-50 hover:bg-orange-100 disabled:opacity-40 text-orange-600 text-sm font-medium rounded-lg border border-orange-200 transition-colors whitespace-nowrap"
+              >
+                {extractingUrl ? <Loader2 size={14} className="animate-spin" /> : <Link2 size={14} />}
+                {extractingUrl ? 'Reading...' : 'Extract recipe'}
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">Works best with YouTube. Facebook may require login.</p>
           </div>
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
