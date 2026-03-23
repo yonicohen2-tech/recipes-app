@@ -14,6 +14,8 @@ export interface Recipe {
   file_url: string | null
   file_type: string | null
   video_url: string | null
+  ingredients: string[]
+  instructions: string | null
   added_by: string
   added_by_name: string
   created_at: string

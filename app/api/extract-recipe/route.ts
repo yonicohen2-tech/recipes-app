@@ -47,12 +47,16 @@ export async function POST(req: NextRequest) {
   "difficulty": one of: "easy" | "medium" | "hard",
   "prep_time": number (minutes, integer),
   "cook_time": number (minutes, integer),
-  "dietary_tags": array of any that apply: ["dairy", "non-dairy", "gluten-free", "vegan", "vegetarian", "meat"]
+  "dietary_tags": array of any that apply: ["dairy", "non-dairy", "gluten-free", "vegan", "vegetarian", "meat"],
+  "ingredients": array of strings, each being one ingredient with quantity (e.g. "2 cups flour", "1 tsp salt"). Keep in the original language of the recipe.
+  "instructions": string with the full preparation steps, written clearly and numbered. Keep in the original language of the recipe.
 }
 
 Rules:
 - If prep or cook time is not mentioned, estimate based on the recipe steps.
 - dietary_tags: include "meat" if the recipe contains meat/poultry/fish. Include "dairy" if it contains dairy. Include "non-dairy" if it has no dairy. Include "vegan" if fully plant-based. Include "vegetarian" if no meat but may have dairy/eggs. Include "gluten-free" if no gluten ingredients.
+- ingredients: list every ingredient separately with its quantity.
+- instructions: format as numbered steps, one per line.
 - Return ONLY the JSON object, no other text.`
 
   const message = await client.messages.create({

@@ -9,7 +9,7 @@ import { useLang } from '@/lib/context'
 import Navbar from '@/components/Navbar'
 import type { Recipe, Comment } from '@/lib/types'
 import type { User } from '@supabase/supabase-js'
-import { Clock, ChefHat, User as UserIcon, ExternalLink, FileText, Trash2, Send } from 'lucide-react'
+import { Clock, ChefHat, User as UserIcon, ExternalLink, FileText, Trash2, Send, Download } from 'lucide-react'
 
 const difficultyColor = {
   easy: 'bg-green-100 text-green-700',
@@ -156,20 +156,62 @@ export default function RecipeDetailPage() {
           </div>
         </div>
 
-        {/* File viewer */}
-        {recipe.file_url && (
+        {/* Ingredients + Instructions */}
+        {(recipe.ingredients?.length > 0 || recipe.instructions) && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {recipe.ingredients?.length > 0 && (
+                <div>
+                  <h2 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-orange-400 inline-block" />
+                    {t('ingredients')}
+                  </h2>
+                  <ul className="space-y-2">
+                    {recipe.ingredients.map((ing, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                        <span className="text-orange-400 font-bold mt-0.5 shrink-0">•</span>
+                        {ing}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {recipe.instructions && (
+                <div>
+                  <h2 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-orange-400 inline-block" />
+                    {t('instructions')}
+                  </h2>
+                  <div className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
+                    {recipe.instructions}
+                  </div>
+                </div>
+              )}
+            </div>
+            {recipe.file_url && (
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <a
+                  href={recipe.file_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-gray-400 hover:text-orange-500 text-sm transition-colors"
+                >
+                  <Download size={14} />
+                  {t('downloadOriginal')}
+                </a>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* File viewer fallback (for recipes without extracted content) */}
+        {!recipe.ingredients?.length && !recipe.instructions && recipe.file_url && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-4">
             {recipe.file_type?.startsWith('image/') ? (
               <img
                 src={recipe.file_url}
                 alt={recipe.title}
                 className="w-full rounded-lg max-h-[600px] object-contain"
-              />
-            ) : recipe.file_type === 'application/pdf' ? (
-              <iframe
-                src={recipe.file_url}
-                className="w-full h-[600px] rounded-lg"
-                title={recipe.title}
               />
             ) : (
               <a

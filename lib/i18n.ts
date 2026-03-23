@@ -69,6 +69,11 @@ export const translations = {
     confirmDelete: 'Are you sure you want to delete this recipe?',
     yes: 'Yes',
     no: 'No',
+    // Recipe content
+    ingredients: 'Ingredients',
+    instructions: 'Instructions',
+    noIngredients: 'No ingredients listed',
+    downloadOriginal: 'Download original file',
     // Menu planner
     menuPlanner: 'Menu Planner',
     planMenu: 'Plan a Menu',
@@ -149,6 +154,11 @@ export const translations = {
     confirmDelete: 'האם אתה בטוח שברצונך למחוק מתכון זה?',
     yes: 'כן',
     no: 'לא',
+    // Recipe content
+    ingredients: 'מרכיבים',
+    instructions: 'הוראות הכנה',
+    noIngredients: 'אין מרכיבים',
+    downloadOriginal: 'הורד קובץ מקורי',
     // Menu planner
     menuPlanner: 'תכנון תפריט',
     planMenu: 'תכנן תפריט',

@@ -32,6 +32,8 @@ export default function AddRecipePage() {
     prep_time: '',
     cook_time: '',
     video_url: '',
+    ingredients: [] as string[],
+    instructions: '',
   })
 
   useEffect(() => {
@@ -66,6 +68,8 @@ export default function AddRecipePage() {
           prep_time: data.prep_time?.toString() || f.prep_time,
           cook_time: data.cook_time?.toString() || f.cook_time,
           dietary_tags: data.dietary_tags || f.dietary_tags,
+          ingredients: data.ingredients || f.ingredients,
+          instructions: data.instructions || f.instructions,
         }))
         setExtracted(true)
       } else {
@@ -126,6 +130,8 @@ export default function AddRecipePage() {
       video_url: form.video_url || null,
       file_url,
       file_type,
+      ingredients: form.ingredients,
+      instructions: form.instructions || null,
       added_by: user.id,
       added_by_name: user.user_metadata?.full_name || user.email,
     })
