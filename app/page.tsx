@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useLang } from '@/lib/context'
 import Navbar from '@/components/Navbar'
 import type { Recipe, CourseType, DietaryTag } from '@/lib/types'
-import { Search, Clock, ChefHat, X, PlayCircle } from 'lucide-react'
+import { Search, Clock, ChefHat, X, PlayCircle, MessageCircle } from 'lucide-react'
 
 const COURSE_TYPES: CourseType[] = ['appetizer', 'first-course', 'main-course', 'side-dish', 'dessert', 'drink', 'snack']
 const DIETARY_TAGS: DietaryTag[] = ['dairy', 'non-dairy', 'gluten-free', 'vegan', 'vegetarian', 'meat']
@@ -71,7 +71,7 @@ function IngredientsCell({ ingredients, title, t }: { ingredients: string[], tit
               <button onClick={() => setModal(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
             </div>
             <p className="text-xs font-semibold text-orange-500 uppercase tracking-wide mb-3">{t('ingredients')}</p>
-            <ul className="space-y-2 max-h-96 overflow-y-auto">
+            <ul className="space-y-2 max-h-80 overflow-y-auto mb-4">
               {ingredients.map((ing, i) => (
                 <li key={i} className="text-gray-700 text-sm flex items-start gap-2">
                   <span className="text-orange-400 font-bold mt-0.5 shrink-0">•</span>
@@ -79,6 +79,15 @@ function IngredientsCell({ ingredients, title, t }: { ingredients: string[], tit
                 </li>
               ))}
             </ul>
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(`*${title} - ${t('ingredients')}:*\n${ingredients.map(i => `• ${i}`).join('\n')}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full bg-green-500 hover:bg-green-600 text-white text-sm font-medium py-2.5 rounded-xl transition-colors"
+            >
+              <MessageCircle size={16} />
+              Send ingredient list to WhatsApp
+            </a>
           </div>
         </div>
       )}

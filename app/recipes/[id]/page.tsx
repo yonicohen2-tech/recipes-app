@@ -9,7 +9,7 @@ import { useLang } from '@/lib/context'
 import Navbar from '@/components/Navbar'
 import type { Recipe, Comment } from '@/lib/types'
 import type { User } from '@supabase/supabase-js'
-import { Clock, ChefHat, User as UserIcon, ExternalLink, FileText, Trash2, Send, Download } from 'lucide-react'
+import { Clock, ChefHat, User as UserIcon, ExternalLink, FileText, Trash2, Send, Download, Mail, MessageCircle } from 'lucide-react'
 
 const difficultyColor = {
   easy: 'bg-green-100 text-green-700',
@@ -97,15 +97,37 @@ export default function RecipeDetailPage() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-4">
           <div className="flex items-start justify-between gap-4 mb-4">
             <h1 className="text-2xl font-bold text-gray-900">{recipe.title}</h1>
-            {isOwner && (
-              <button
-                onClick={() => setConfirmDelete(true)}
-                className="text-gray-400 hover:text-red-500 transition-colors shrink-0"
-                title={t('deleteRecipe')}
+            <div className="flex items-center gap-2 shrink-0">
+              <a
+                href={`mailto:?subject=${encodeURIComponent(recipe.title)}&body=${encodeURIComponent(
+                  `${recipe.title}\n\n${recipe.description || ''}\n\n${t('ingredients')}:\n${(recipe.ingredients || []).map(i => `• ${i}`).join('\n')}\n\n${t('instructions')}:\n${recipe.instructions || ''}\n\nLink: ${typeof window !== 'undefined' ? window.location.href : ''}`
+                )}`}
+                className="text-gray-400 hover:text-blue-500 transition-colors"
+                title="Send by email"
               >
-                <Trash2 size={20} />
-              </button>
-            )}
+                <Mail size={20} />
+              </a>
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(
+                  `*${recipe.title}*\n\n${recipe.description || ''}\n\n*${t('ingredients')}:*\n${(recipe.ingredients || []).map(i => `• ${i}`).join('\n')}\n\n*${t('instructions')}:*\n${recipe.instructions || ''}\n\n${typeof window !== 'undefined' ? window.location.href : ''}`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-green-500 transition-colors"
+                title="Send on WhatsApp"
+              >
+                <MessageCircle size={20} />
+              </a>
+              {isOwner && (
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  className="text-gray-400 hover:text-red-500 transition-colors"
+                  title={t('deleteRecipe')}
+                >
+                  <Trash2 size={20} />
+                </button>
+              )}
+            </div>
           </div>
 
           {recipe.description && (
