@@ -7,8 +7,9 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useLang } from '@/lib/context'
 import Navbar from '@/components/Navbar'
-import type { Recipe, CourseType, DietaryTag } from '@/lib/types'
-import { Search, Clock, ChefHat, X, PlayCircle, MessageCircle } from 'lucide-react'
+import type { Recipe, Comment, CourseType, DietaryTag } from '@/lib/types'
+import type { User } from '@supabase/supabase-js'
+import { Search, Clock, ChefHat, X, PlayCircle, MessageCircle, Trash2, Send } from 'lucide-react'
 
 const COURSE_TYPES: CourseType[] = ['appetizer', 'first-course', 'main-course', 'side-dish', 'dessert', 'drink', 'snack']
 const DIETARY_TAGS: DietaryTag[] = ['dairy', 'non-dairy', 'gluten-free', 'vegan', 'vegetarian', 'meat']
@@ -95,10 +96,90 @@ function IngredientsCell({ ingredients, title, t }: { ingredients: string[], tit
   )
 }
 
+function CommentsModal({ recipe, user, t, onClose }: { recipe: Recipe, user: User | null, t: (k: any) => string, onClose: () => void }) {
+  const [comments, setComments] = useState<Comment[]>([])
+  const [newComment, setNewComment] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.from('comments').select('*').eq('recipe_id', recipe.id).order('created_at', { ascending: true })
+      .then(({ data }) => { setComments(data || []); setLoading(false) })
+  }, [recipe.id])
+
+  const handleSubmit = async () => {
+    if (!newComment.trim() || !user) return
+    setSubmitting(true)
+    const supabase = createClient()
+    const { data } = await supabase.from('comments').insert({
+      recipe_id: recipe.id,
+      user_id: user.id,
+      user_name: user.user_metadata?.full_name || user.email,
+      content: newComment.trim(),
+    }).select().single()
+    if (data) { setComments((c) => [...c, data]); setNewComment('') }
+    setSubmitting(false)
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-gray-900">{recipe.title}</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+        </div>
+        <p className="text-xs font-semibold text-orange-500 uppercase tracking-wide mb-3">{t('comments')} ({comments.length})</p>
+
+        <div className="space-y-3 max-h-64 overflow-y-auto mb-4">
+          {loading ? (
+            <p className="text-sm text-gray-400">{t('loading')}</p>
+          ) : comments.length === 0 ? (
+            <p className="text-sm text-gray-400">No comments yet.</p>
+          ) : comments.map((c) => (
+            <div key={c.id} className="bg-gray-50 rounded-xl p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-sm font-semibold text-gray-800">{c.user_name}</span>
+                <span className="text-xs text-gray-400">{new Date(c.created_at).toLocaleDateString()}</span>
+              </div>
+              <p className="text-sm text-gray-700">{c.content}</p>
+            </div>
+          ))}
+        </div>
+
+        {user ? (
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+              placeholder={t('addComment')}
+              className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+            />
+            <button
+              onClick={handleSubmit}
+              disabled={submitting || !newComment.trim()}
+              className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white px-3 py-2 rounded-lg text-sm transition-colors"
+            >
+              <Send size={14} />
+            </button>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400"><a href="/login" className="text-orange-500 hover:underline">{t('signIn')}</a> to comment</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function HomePage() {
   const { t, isRTL } = useLang()
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [loading, setLoading] = useState(true)
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [commentsRecipe, setCommentsRecipe] = useState<Recipe | null>(null)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
 
   // Column filters
   const [search, setSearch] = useState('')
@@ -109,15 +190,20 @@ export default function HomePage() {
 
   useEffect(() => {
     const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => setCurrentUser(data.user))
     supabase
       .from('recipes')
       .select('*')
       .order('created_at', { ascending: false })
-      .then(({ data }) => {
-        setRecipes(data || [])
-        setLoading(false)
-      })
+      .then(({ data }) => { setRecipes(data || []); setLoading(false) })
   }, [])
+
+  const handleDelete = async (id: string) => {
+    const supabase = createClient()
+    await supabase.from('recipes').delete().eq('id', id)
+    setRecipes((r) => r.filter((x) => x.id !== id))
+    setDeleteId(null)
+  }
 
   const uniqueAuthors = useMemo(
     () => Array.from(new Set(recipes.map((r) => r.added_by_name))).sort(),
@@ -127,18 +213,11 @@ export default function HomePage() {
   const hasActiveFilters = search || courseFilter || dietaryFilter || difficultyFilter || addedByFilter
 
   const clearFilters = () => {
-    setSearch('')
-    setCourseFilter('')
-    setDietaryFilter('')
-    setDifficultyFilter('')
-    setAddedByFilter('')
+    setSearch(''); setCourseFilter(''); setDietaryFilter(''); setDifficultyFilter(''); setAddedByFilter('')
   }
 
   const filtered = recipes.filter((r) => {
-    const matchSearch =
-      !search ||
-      r.title.toLowerCase().includes(search.toLowerCase()) ||
-      (r.description || '').toLowerCase().includes(search.toLowerCase())
+    const matchSearch = !search || r.title.toLowerCase().includes(search.toLowerCase()) || (r.description || '').toLowerCase().includes(search.toLowerCase())
     const matchCourse = !courseFilter || r.course_type === courseFilter
     const matchDietary = !dietaryFilter || r.dietary_tags.includes(dietaryFilter as DietaryTag)
     const matchDifficulty = !difficultyFilter || r.difficulty === difficultyFilter
@@ -150,7 +229,6 @@ export default function HomePage() {
     <div dir={isRTL ? 'rtl' : 'ltr'}>
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 py-6">
-        {/* Top search bar */}
         <div className="flex items-center gap-2 mb-4">
           <div className="relative flex-1 max-w-sm">
             <Search size={16} className="absolute top-3 text-gray-400" style={isRTL ? { right: 12 } : { left: 12 }} />
@@ -164,12 +242,8 @@ export default function HomePage() {
             />
           </div>
           {hasActiveFilters && (
-            <button
-              onClick={clearFilters}
-              className="flex items-center gap-1 text-sm text-gray-500 hover:text-red-500 border border-gray-200 rounded-lg px-3 py-2 transition-colors"
-            >
-              <X size={14} />
-              Clear filters
+            <button onClick={clearFilters} className="flex items-center gap-1 text-sm text-gray-500 hover:text-red-500 border border-gray-200 rounded-lg px-3 py-2 transition-colors">
+              <X size={14} /> Clear filters
             </button>
           )}
           <span className="text-sm text-gray-400 ml-auto">{filtered.length} {filtered.length === 1 ? 'recipe' : 'recipes'}</span>
@@ -187,7 +261,6 @@ export default function HomePage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  {/* Column labels */}
                   <tr className="border-b border-gray-100 bg-gray-50">
                     <th className="text-start px-4 py-3 font-semibold text-gray-600">{t('title')}</th>
                     <th className="text-start px-4 py-3 font-semibold text-gray-600">{t('courseType')}</th>
@@ -197,17 +270,12 @@ export default function HomePage() {
                     <th className="text-start px-4 py-3 font-semibold text-gray-600">{t('ingredients')}</th>
                     <th className="text-start px-4 py-3 font-semibold text-gray-600">{t('addedBy')}</th>
                     <th className="text-start px-4 py-3 font-semibold text-gray-600">Video</th>
+                    <th className="text-start px-4 py-3 font-semibold text-gray-600">{t('comments')}</th>
+                    <th className="px-4 py-3" />
                   </tr>
-                  {/* Column filters */}
                   <tr className="border-b border-gray-200 bg-orange-50/40">
                     <td className="px-3 py-2">
-                      <input
-                        type="text"
-                        placeholder="Filter..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className={selectClass}
-                      />
+                      <input type="text" placeholder="Filter..." value={search} onChange={(e) => setSearch(e.target.value)} className={selectClass} />
                     </td>
                     <td className="px-3 py-2">
                       <select value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)} className={selectClass}>
@@ -236,22 +304,20 @@ export default function HomePage() {
                       </select>
                     </td>
                     <td className="px-3 py-2" />
+                    <td className="px-3 py-2" />
+                    <td className="px-3 py-2" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {filtered.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="text-center py-10 text-gray-400">{t('noRecipes')}</td>
-                    </tr>
+                    <tr><td colSpan={10} className="text-center py-10 text-gray-400">{t('noRecipes')}</td></tr>
                   ) : filtered.map((recipe) => (
                     <tr key={recipe.id} className="hover:bg-orange-50/30 transition-colors">
                       <td className="px-4 py-3">
                         <Link href={`/recipes/${recipe.id}`} className="font-medium text-gray-900 hover:text-orange-500 transition-colors">
                           {recipe.title}
                         </Link>
-                        {recipe.description && (
-                          <p className="text-gray-400 text-xs mt-0.5 line-clamp-1">{recipe.description}</p>
-                        )}
+                        {recipe.description && <p className="text-gray-400 text-xs mt-0.5 line-clamp-1">{recipe.description}</p>}
                       </td>
                       <td className="px-4 py-3">
                         <span className="bg-orange-100 text-orange-700 text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap">
@@ -281,22 +347,32 @@ export default function HomePage() {
                       <td className="px-4 py-3">
                         <IngredientsCell ingredients={recipe.ingredients || []} title={recipe.title} t={t} />
                       </td>
-                      <td className="px-4 py-3 text-gray-500 whitespace-nowrap text-xs">
-                        {recipe.added_by_name}
-                      </td>
+                      <td className="px-4 py-3 text-gray-500 whitespace-nowrap text-xs">{recipe.added_by_name}</td>
                       <td className="px-4 py-3">
                         {recipe.video_url ? (
-                          <a
-                            href={recipe.video_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-red-500 hover:text-red-600 transition-colors"
-                            title="Watch video"
-                          >
+                          <a href={recipe.video_url} target="_blank" rel="noopener noreferrer" className="text-red-500 hover:text-red-600 transition-colors" title="Watch video">
                             <PlayCircle size={20} />
                           </a>
-                        ) : (
-                          <span className="text-gray-200">—</span>
+                        ) : <span className="text-gray-200">—</span>}
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => setCommentsRecipe(recipe)}
+                          className="flex items-center gap-1 text-gray-400 hover:text-orange-500 transition-colors text-xs"
+                          title={t('comments')}
+                        >
+                          <MessageCircle size={16} />
+                        </button>
+                      </td>
+                      <td className="px-4 py-3">
+                        {currentUser?.id === recipe.added_by && (
+                          <button
+                            onClick={() => setDeleteId(recipe.id)}
+                            className="text-gray-300 hover:text-red-500 transition-colors"
+                            title={t('deleteRecipe')}
+                          >
+                            <Trash2 size={15} />
+                          </button>
                         )}
                       </td>
                     </tr>
@@ -307,6 +383,28 @@ export default function HomePage() {
           </div>
         )}
       </main>
+
+      {/* Comments modal */}
+      {commentsRecipe && (
+        <CommentsModal recipe={commentsRecipe} user={currentUser} t={t} onClose={() => setCommentsRecipe(null)} />
+      )}
+
+      {/* Delete confirmation */}
+      {deleteId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
+            <p className="text-gray-800 font-medium mb-4">{t('confirmDelete')}</p>
+            <div className="flex gap-3">
+              <button onClick={() => handleDelete(deleteId)} className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg font-medium">
+                {t('yes')}
+              </button>
+              <button onClick={() => setDeleteId(null)} className="flex-1 border border-gray-200 text-gray-600 py-2 rounded-lg font-medium hover:bg-gray-50">
+                {t('no')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
