@@ -23,6 +23,7 @@ export default function AddRecipePage() {
   const [extractingText, setExtractingText] = useState(false)
   const [extracted, setExtracted] = useState(false)
   const [findingVideo, setFindingVideo] = useState(false)
+  const [videoOptions, setVideoOptions] = useState<{id:string,title:string,channel:string,thumbnail:string,url:string}[]>([])
   const [pastedText, setPastedText] = useState('')
   const [error, setError] = useState('')
   const [file, setFile] = useState<File | null>(null)
@@ -142,6 +143,7 @@ export default function AddRecipePage() {
   const findAndSetVideo = async (title: string) => {
     if (!title) return
     setFindingVideo(true)
+    setVideoOptions([])
     try {
       const res = await fetch('/api/find-video', {
         method: 'POST',
@@ -149,8 +151,8 @@ export default function AddRecipePage() {
         body: JSON.stringify({ query: title }),
       })
       const data = await res.json()
-      if (res.ok && data.url) {
-        setForm((f) => ({ ...f, video_url: f.video_url || data.url }))
+      if (res.ok && data.videos) {
+        setVideoOptions(data.videos)
       }
     } catch {}
     finally { setFindingVideo(false) }
@@ -447,6 +449,36 @@ export default function AddRecipePage() {
               )}
             </div>
             <p className="text-xs text-gray-400 mt-1">Paste a link — recipe data will be extracted automatically. Works best with YouTube.</p>
+
+            {/* Video options picker */}
+            {videoOptions.length > 0 && (
+              <div className="mt-3">
+                <p className="text-xs font-medium text-gray-500 mb-2">Pick the matching video:</p>
+                <div className="space-y-2">
+                  {videoOptions.map((v) => (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => { setForm((f) => ({ ...f, video_url: v.url })); setVideoOptions([]) }}
+                      className="flex items-center gap-3 w-full text-left p-2 rounded-lg border border-gray-100 hover:border-orange-300 hover:bg-orange-50 transition-colors"
+                    >
+                      {v.thumbnail && <img src={v.thumbnail} alt="" className="w-16 h-12 rounded object-cover shrink-0" />}
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-800 line-clamp-1">{v.title}</p>
+                        <p className="text-xs text-gray-400">{v.channel}</p>
+                      </div>
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setVideoOptions([])}
+                    className="text-xs text-gray-400 hover:text-gray-600"
+                  >
+                    None of these — skip
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Notes */}

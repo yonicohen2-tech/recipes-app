@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     part: 'snippet',
     q: searchQuery,
     type: 'video',
-    maxResults: '1',
+    maxResults: '4',
     relevanceLanguage: lang,
     key: apiKey,
   })
@@ -25,8 +25,16 @@ export async function POST(req: NextRequest) {
   const res = await fetch(`https://www.googleapis.com/youtube/v3/search?${params}`)
   const data = await res.json()
 
-  const videoId = data.items?.[0]?.id?.videoId
-  if (!videoId) return NextResponse.json({ error: 'No video found' }, { status: 404 })
+  const items = data.items || []
+  if (!items.length) return NextResponse.json({ error: 'No video found' }, { status: 404 })
 
-  return NextResponse.json({ url: `https://www.youtube.com/watch?v=${videoId}` })
+  const videos = items.map((item: any) => ({
+    id: item.id.videoId,
+    title: item.snippet.title,
+    channel: item.snippet.channelTitle,
+    thumbnail: item.snippet.thumbnails?.default?.url,
+    url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
+  }))
+
+  return NextResponse.json({ videos })
 }
