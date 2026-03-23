@@ -10,6 +10,7 @@ import Navbar from '@/components/Navbar'
 import type { Recipe, Comment, CourseType, DietaryTag } from '@/lib/types'
 import type { User } from '@supabase/supabase-js'
 import { Search, Clock, ChefHat, X, PlayCircle, MessageCircle, Trash2, Send } from 'lucide-react'
+import CookingAnimation from '@/components/CookingAnimation'
 
 const COURSE_TYPES: CourseType[] = ['appetizer', 'first-course', 'main-course', 'side-dish', 'dessert', 'drink', 'snack']
 const DIETARY_TAGS: DietaryTag[] = ['dairy', 'non-dairy', 'gluten-free', 'vegan', 'vegetarian', 'meat']
@@ -229,6 +230,7 @@ export default function HomePage() {
     <div dir={isRTL ? 'rtl' : 'ltr'}>
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 py-6">
+        <CookingAnimation />
         <div className="flex items-center gap-2 mb-4">
           <div className="relative flex-1 max-w-sm">
             <Search size={16} className="absolute top-3 text-gray-400" style={isRTL ? { right: 12 } : { left: 12 }} />
