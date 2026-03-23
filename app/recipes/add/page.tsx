@@ -21,6 +21,7 @@ export default function AddRecipePage() {
   const [extracting, setExtracting] = useState(false)
   const [extractingUrl, setExtractingUrl] = useState(false)
   const [extracted, setExtracted] = useState(false)
+  const [findingVideo, setFindingVideo] = useState(false)
   const [error, setError] = useState('')
   const [file, setFile] = useState<File | null>(null)
 
@@ -77,6 +78,7 @@ export default function AddRecipePage() {
           notes: data.notes || f.notes,
         }))
         setExtracted(true)
+        if (data.title) findAndSetVideo(data.title)
       } else {
         setError(data.error || 'Could not extract recipe data')
       }
@@ -115,6 +117,9 @@ export default function AddRecipePage() {
           notes: data.notes || f.notes,
         }))
         setExtracted(true)
+        if (data.title && !url.includes('youtube.com') && !url.includes('youtu.be')) {
+          findAndSetVideo(data.title)
+        }
       } else {
         setError(data.error || 'Could not extract recipe from this link')
       }
@@ -123,6 +128,23 @@ export default function AddRecipePage() {
     } finally {
       setExtractingUrl(false)
     }
+  }
+
+  const findAndSetVideo = async (title: string) => {
+    if (!title) return
+    setFindingVideo(true)
+    try {
+      const res = await fetch('/api/find-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: title }),
+      })
+      const data = await res.json()
+      if (res.ok && data.url) {
+        setForm((f) => ({ ...f, video_url: f.video_url || data.url }))
+      }
+    } catch {}
+    finally { setFindingVideo(false) }
   }
 
   const toggleDietaryTag = (tag: DietaryTag) => {
@@ -348,9 +370,10 @@ export default function AddRecipePage() {
                 placeholder="Paste a YouTube or recipe link to auto-fill..."
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
               />
-              {extractingUrl && (
-                <div className="absolute right-3 top-3">
+              {(extractingUrl || findingVideo) && (
+                <div className="absolute right-3 top-3 flex items-center gap-1">
                   <Loader2 size={16} className="animate-spin text-orange-400" />
+                  {findingVideo && <span className="text-xs text-orange-400">Finding video...</span>}
                 </div>
               )}
             </div>
