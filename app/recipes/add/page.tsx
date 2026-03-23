@@ -55,13 +55,20 @@ export default function AddRecipePage() {
     const supported = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp']
     if (!supported.includes(selectedFile.type)) return
 
+    if (selectedFile.size > 4 * 1024 * 1024) {
+      setError('File is too large (max 4MB). Please use a smaller image or compress the PDF.')
+      return
+    }
+
     setExtracting(true)
     const fd = new FormData()
     fd.append('file', selectedFile)
 
     try {
       const res = await fetch('/api/extract-recipe', { method: 'POST', body: fd })
-      const data = await res.json()
+      const text = await res.text()
+      let data: any
+      try { data = JSON.parse(text) } catch { setError('File too large or server error. Try a smaller file.'); setExtracting(false); return }
       if (res.ok) {
         setForm((f) => ({
           ...f,
