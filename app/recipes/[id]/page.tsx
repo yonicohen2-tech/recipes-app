@@ -113,7 +113,7 @@ export default function RecipeDetailPage() {
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-400 hover:text-green-500 transition-colors"
+                className="text-green-500 hover:text-green-600 transition-colors"
                 title="Send on WhatsApp"
               >
                 <MessageCircle size={20} />
