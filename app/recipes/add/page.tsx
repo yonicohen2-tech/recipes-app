@@ -82,8 +82,8 @@ export default function AddRecipePage() {
       } else {
         setError(data.error || 'Could not extract recipe data')
       }
-    } catch {
-      setError('Failed to analyze file')
+    } catch (e: any) {
+      setError(e?.message || 'Failed to analyze file')
     } finally {
       setExtracting(false)
     }
