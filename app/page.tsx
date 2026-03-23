@@ -2,13 +2,13 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useLang } from '@/lib/context'
 import Navbar from '@/components/Navbar'
 import type { Recipe, CourseType, DietaryTag } from '@/lib/types'
-import { Search, SlidersHorizontal, Clock, ChefHat } from 'lucide-react'
+import { Search, Clock, ChefHat, X } from 'lucide-react'
 
 const COURSE_TYPES: CourseType[] = ['appetizer', 'first-course', 'main-course', 'side-dish', 'dessert', 'drink', 'snack']
 const DIETARY_TAGS: DietaryTag[] = ['dairy', 'non-dairy', 'gluten-free', 'vegan', 'vegetarian', 'meat']
@@ -28,6 +28,8 @@ const dietaryColor: Record<string, string> = {
   'non-dairy': 'bg-purple-50 text-purple-600',
   'gluten-free': 'bg-amber-50 text-amber-700',
 }
+
+const selectClass = 'w-full border border-gray-200 rounded-md px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-orange-400 text-gray-600'
 
 function IngredientsCell({ ingredients, t }: { ingredients: string[], t: (k: any) => string }) {
   const [open, setOpen] = useState(false)
@@ -63,11 +65,13 @@ export default function HomePage() {
   const { t, isRTL } = useLang()
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Column filters
   const [search, setSearch] = useState('')
-  const [courseFilter, setCourseFilter] = useState<CourseType | ''>('')
-  const [dietaryFilter, setDietaryFilter] = useState<DietaryTag | ''>('')
-  const [difficultyFilter, setDifficultyFilter] = useState<string>('')
-  const [showFilters, setShowFilters] = useState(false)
+  const [courseFilter, setCourseFilter] = useState('')
+  const [dietaryFilter, setDietaryFilter] = useState('')
+  const [difficultyFilter, setDifficultyFilter] = useState('')
+  const [addedByFilter, setAddedByFilter] = useState('')
 
   useEffect(() => {
     const supabase = createClient()
@@ -81,24 +85,40 @@ export default function HomePage() {
       })
   }, [])
 
+  const uniqueAuthors = useMemo(
+    () => Array.from(new Set(recipes.map((r) => r.added_by_name))).sort(),
+    [recipes]
+  )
+
+  const hasActiveFilters = search || courseFilter || dietaryFilter || difficultyFilter || addedByFilter
+
+  const clearFilters = () => {
+    setSearch('')
+    setCourseFilter('')
+    setDietaryFilter('')
+    setDifficultyFilter('')
+    setAddedByFilter('')
+  }
+
   const filtered = recipes.filter((r) => {
     const matchSearch =
       !search ||
       r.title.toLowerCase().includes(search.toLowerCase()) ||
       (r.description || '').toLowerCase().includes(search.toLowerCase())
     const matchCourse = !courseFilter || r.course_type === courseFilter
-    const matchDietary = !dietaryFilter || r.dietary_tags.includes(dietaryFilter)
+    const matchDietary = !dietaryFilter || r.dietary_tags.includes(dietaryFilter as DietaryTag)
     const matchDifficulty = !difficultyFilter || r.difficulty === difficultyFilter
-    return matchSearch && matchCourse && matchDietary && matchDifficulty
+    const matchAuthor = !addedByFilter || r.added_by_name === addedByFilter
+    return matchSearch && matchCourse && matchDietary && matchDifficulty && matchAuthor
   })
 
   return (
     <div dir={isRTL ? 'rtl' : 'ltr'}>
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 py-6">
-        {/* Search + filters bar */}
-        <div className="flex gap-2 mb-4">
-          <div className="relative flex-1">
+        {/* Top search bar */}
+        <div className="flex items-center gap-2 mb-4">
+          <div className="relative flex-1 max-w-sm">
             <Search size={16} className="absolute top-3 text-gray-400" style={isRTL ? { right: 12 } : { left: 12 }} />
             <input
               type="text"
@@ -109,56 +129,21 @@ export default function HomePage() {
               style={isRTL ? { paddingRight: 36, paddingLeft: 16 } : { paddingLeft: 36, paddingRight: 16 }}
             />
           </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${showFilters ? 'bg-orange-500 text-white border-orange-500' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
-          >
-            <SlidersHorizontal size={16} />
-            {t('filters')}
-          </button>
+          {hasActiveFilters && (
+            <button
+              onClick={clearFilters}
+              className="flex items-center gap-1 text-sm text-gray-500 hover:text-red-500 border border-gray-200 rounded-lg px-3 py-2 transition-colors"
+            >
+              <X size={14} />
+              Clear filters
+            </button>
+          )}
+          <span className="text-sm text-gray-400 ml-auto">{filtered.length} {filtered.length === 1 ? 'recipe' : 'recipes'}</span>
         </div>
-
-        {showFilters && (
-          <div className="bg-white rounded-xl border border-gray-100 p-4 mb-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">{t('courseType')}</label>
-              <select
-                value={courseFilter}
-                onChange={(e) => setCourseFilter(e.target.value as CourseType | '')}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-              >
-                <option value="">{t('allCategories')}</option>
-                {COURSE_TYPES.map((c) => <option key={c} value={c}>{t(c as any)}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">{t('dietaryTags')}</label>
-              <select
-                value={dietaryFilter}
-                onChange={(e) => setDietaryFilter(e.target.value as DietaryTag | '')}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-              >
-                <option value="">{t('allDietary')}</option>
-                {DIETARY_TAGS.map((d) => <option key={d} value={d}>{t(d as any)}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">{t('difficultyLabel')}</label>
-              <select
-                value={difficultyFilter}
-                onChange={(e) => setDifficultyFilter(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-              >
-                <option value="">{t('allDietary')}</option>
-                {DIFFICULTIES.map((d) => <option key={d} value={d}>{t(d as any)}</option>)}
-              </select>
-            </div>
-          </div>
-        )}
 
         {loading ? (
           <p className="text-center text-gray-400 py-16">{t('loading')}</p>
-        ) : filtered.length === 0 ? (
+        ) : recipes.length === 0 ? (
           <div className="text-center py-16">
             <ChefHat size={40} className="text-gray-200 mx-auto mb-3" />
             <p className="text-gray-400">{t('noRecipes')}</p>
@@ -168,6 +153,7 @@ export default function HomePage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
+                  {/* Column labels */}
                   <tr className="border-b border-gray-100 bg-gray-50">
                     <th className="text-start px-4 py-3 font-semibold text-gray-600">{t('title')}</th>
                     <th className="text-start px-4 py-3 font-semibold text-gray-600">{t('courseType')}</th>
@@ -177,9 +163,51 @@ export default function HomePage() {
                     <th className="text-start px-4 py-3 font-semibold text-gray-600">{t('ingredients')}</th>
                     <th className="text-start px-4 py-3 font-semibold text-gray-600">{t('addedBy')}</th>
                   </tr>
+                  {/* Column filters */}
+                  <tr className="border-b border-gray-200 bg-orange-50/40">
+                    <td className="px-3 py-2">
+                      <input
+                        type="text"
+                        placeholder="Filter..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className={selectClass}
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <select value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)} className={selectClass}>
+                        <option value="">{t('allCategories')}</option>
+                        {COURSE_TYPES.map((c) => <option key={c} value={c}>{t(c as any)}</option>)}
+                      </select>
+                    </td>
+                    <td className="px-3 py-2">
+                      <select value={dietaryFilter} onChange={(e) => setDietaryFilter(e.target.value)} className={selectClass}>
+                        <option value="">{t('allDietary')}</option>
+                        {DIETARY_TAGS.map((d) => <option key={d} value={d}>{t(d as any)}</option>)}
+                      </select>
+                    </td>
+                    <td className="px-3 py-2">
+                      <select value={difficultyFilter} onChange={(e) => setDifficultyFilter(e.target.value)} className={selectClass}>
+                        <option value="">All</option>
+                        {DIFFICULTIES.map((d) => <option key={d} value={d}>{t(d as any)}</option>)}
+                      </select>
+                    </td>
+                    <td className="px-3 py-2" />
+                    <td className="px-3 py-2" />
+                    <td className="px-3 py-2">
+                      <select value={addedByFilter} onChange={(e) => setAddedByFilter(e.target.value)} className={selectClass}>
+                        <option value="">All</option>
+                        {uniqueAuthors.map((name) => <option key={name} value={name}>{name}</option>)}
+                      </select>
+                    </td>
+                  </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {filtered.map((recipe) => (
+                  {filtered.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="text-center py-10 text-gray-400">{t('noRecipes')}</td>
+                    </tr>
+                  ) : filtered.map((recipe) => (
                     <tr key={recipe.id} className="hover:bg-orange-50/30 transition-colors">
                       <td className="px-4 py-3">
                         <Link href={`/recipes/${recipe.id}`} className="font-medium text-gray-900 hover:text-orange-500 transition-colors">
