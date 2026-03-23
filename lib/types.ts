@@ -16,6 +16,8 @@ export interface Recipe {
   video_url: string | null
   ingredients: string[]
   instructions: string | null
+  servings: number | null
+  notes: string | null
   added_by: string
   added_by_name: string
   created_at: string

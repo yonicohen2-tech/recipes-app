@@ -35,6 +35,8 @@ export default function AddRecipePage() {
     video_url: '',
     ingredients: [] as string[],
     instructions: '',
+    servings: '',
+    notes: '',
   })
 
   useEffect(() => {
@@ -71,6 +73,8 @@ export default function AddRecipePage() {
           dietary_tags: data.dietary_tags || f.dietary_tags,
           ingredients: data.ingredients || f.ingredients,
           instructions: data.instructions || f.instructions,
+          servings: data.servings?.toString() || f.servings,
+          notes: data.notes || f.notes,
         }))
         setExtracted(true)
       } else {
@@ -106,6 +110,8 @@ export default function AddRecipePage() {
           dietary_tags: data.dietary_tags || f.dietary_tags,
           ingredients: data.ingredients || f.ingredients,
           instructions: data.instructions || f.instructions,
+          servings: data.servings?.toString() || f.servings,
+          notes: data.notes || f.notes,
         }))
         setExtracted(true)
       } else {
@@ -168,6 +174,8 @@ export default function AddRecipePage() {
       file_type,
       ingredients: form.ingredients,
       instructions: form.instructions || null,
+      servings: parseInt(form.servings) || null,
+      notes: form.notes || null,
       added_by: user.id,
       added_by_name: user.user_metadata?.full_name || user.email,
     })
@@ -256,8 +264,8 @@ export default function AddRecipePage() {
             </select>
           </div>
 
-          {/* Times */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Times + Servings */}
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('prepTimeLabel')} *</label>
               <input
@@ -277,6 +285,17 @@ export default function AddRecipePage() {
                 value={form.cook_time}
                 onChange={(e) => setForm({ ...form, cook_time: e.target.value })}
                 required
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Servings</label>
+              <input
+                type="number"
+                min="1"
+                value={form.servings}
+                onChange={(e) => setForm({ ...form, servings: e.target.value })}
+                placeholder="e.g. 4"
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
               />
             </div>
@@ -336,6 +355,18 @@ export default function AddRecipePage() {
               </button>
             </div>
             <p className="text-xs text-gray-400 mt-1">Works best with YouTube. Facebook may require login.</p>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Tips & Notes</label>
+            <textarea
+              value={form.notes}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              rows={3}
+              placeholder="Storage tips, variations, substitutions..."
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none"
+            />
           </div>
 
           {error && <p className="text-red-500 text-sm">{error}</p>}

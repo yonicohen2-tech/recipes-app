@@ -125,7 +125,7 @@ export default function RecipeDetailPage() {
           </div>
 
           {/* Stats row */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-xl">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 p-4 bg-gray-50 rounded-xl">
             <div className="text-center">
               <p className="text-xs text-gray-400 mb-0.5">{t('prepTime')}</p>
               <p className="font-semibold text-gray-800 flex items-center justify-center gap-1">
@@ -146,6 +146,12 @@ export default function RecipeDetailPage() {
                 {t(recipe.difficulty as any)}
               </span>
             </div>
+            {recipe.servings && (
+              <div className="text-center">
+                <p className="text-xs text-gray-400 mb-0.5">Servings</p>
+                <p className="font-semibold text-gray-800 text-sm">{recipe.servings}</p>
+              </div>
+            )}
             <div className="text-center">
               <p className="text-xs text-gray-400 mb-0.5">{t('addedBy')}</p>
               <p className="font-semibold text-gray-800 flex items-center justify-center gap-1 text-sm">
@@ -188,6 +194,15 @@ export default function RecipeDetailPage() {
                 </div>
               )}
             </div>
+            {recipe.notes && (
+              <div className="mt-5 pt-4 border-t border-gray-100">
+                <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-orange-400 inline-block" />
+                  Tips & Notes
+                </h3>
+                <p className="text-sm text-gray-600 whitespace-pre-line leading-relaxed">{recipe.notes}</p>
+              </div>
+            )}
             {recipe.file_url && (
               <div className="mt-4 pt-4 border-t border-gray-100">
                 <a

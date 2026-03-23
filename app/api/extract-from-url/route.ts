@@ -47,23 +47,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No content found at this URL.' }, { status: 400 })
   }
 
-  const prompt = `You are analyzing text extracted from a webpage or video description that contains a recipe. Extract the recipe information and return a single JSON object with exactly these keys:
+  const prompt = `You are analyzing text extracted from a webpage or video description that contains a recipe. Extract ALL possible information and return a single JSON object with exactly these keys:
 
 {
-  "title": string,
+  "title": string (name of the recipe, in original language),
   "description": string (1-2 sentence summary, in the same language as the recipe),
   "course_type": one of: "appetizer" | "first-course" | "main-course" | "side-dish" | "dessert" | "drink" | "snack",
   "difficulty": one of: "easy" | "medium" | "hard",
   "prep_time": number (minutes, integer),
   "cook_time": number (minutes, integer),
+  "servings": number (integer — how many people it serves),
   "dietary_tags": array of any that apply: ["dairy", "non-dairy", "gluten-free", "vegan", "vegetarian", "meat"],
   "ingredients": array of strings, each being one ingredient with quantity. Keep in the original language.
   "instructions": string with numbered preparation steps. Keep in the original language.
+  "notes": string with any tips, variations, storage info, substitutions. null if none. Keep in original language.
 }
 
 Rules:
+- Extract ALL information present — do not skip any field if the data is available.
 - If prep or cook time is not mentioned, estimate based on the steps.
+- If servings is not mentioned, estimate based on recipe type and quantities.
 - dietary_tags: include "meat" if contains meat/poultry/fish, "dairy" if contains dairy, "non-dairy" if no dairy, "vegan" if fully plant-based, "vegetarian" if no meat, "gluten-free" if no gluten.
+- notes: include chef tips, variations, storage, reheating, substitutions, serving suggestions.
 - If this page does not contain a recipe, return { "error": "No recipe found on this page" }
 - Return ONLY the JSON object, no other text.
 
@@ -72,7 +77,7 @@ ${pageText}`
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 2048,
+    max_tokens: 4096,
     messages: [{ role: 'user', content: prompt }],
   })
 

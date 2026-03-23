@@ -38,30 +38,35 @@ export async function POST(req: NextRequest) {
         },
       }
 
-  const prompt = `You are analyzing a recipe document. Extract the following information and return it as a single JSON object with exactly these keys:
+  const prompt = `You are analyzing a recipe document. Extract ALL possible information and return it as a single JSON object with exactly these keys:
 
 {
-  "title": string,
+  "title": string (name of the recipe, in original language),
   "description": string (1-2 sentence summary of the dish, in the same language as the recipe),
   "course_type": one of: "appetizer" | "first-course" | "main-course" | "side-dish" | "dessert" | "drink" | "snack",
   "difficulty": one of: "easy" | "medium" | "hard",
-  "prep_time": number (minutes, integer),
-  "cook_time": number (minutes, integer),
+  "prep_time": number (minutes, integer — time to prepare before cooking),
+  "cook_time": number (minutes, integer — actual cooking/baking time),
+  "servings": number (integer — how many people the recipe serves),
   "dietary_tags": array of any that apply: ["dairy", "non-dairy", "gluten-free", "vegan", "vegetarian", "meat"],
-  "ingredients": array of strings, each being one ingredient with quantity (e.g. "2 cups flour", "1 tsp salt"). Keep in the original language of the recipe.
-  "instructions": string with the full preparation steps, written clearly and numbered. Keep in the original language of the recipe.
+  "ingredients": array of strings, each being one ingredient with its exact quantity (e.g. "2 cups flour", "1 tsp salt"). Keep in the original language.
+  "instructions": string with the full step-by-step preparation instructions, numbered. Keep in the original language.
+  "notes": string with any tips, variations, storage instructions, substitutions, or other useful notes from the recipe. Keep in the original language. null if none.
 }
 
 Rules:
-- If prep or cook time is not mentioned, estimate based on the recipe steps.
-- dietary_tags: include "meat" if the recipe contains meat/poultry/fish. Include "dairy" if it contains dairy. Include "non-dairy" if it has no dairy. Include "vegan" if fully plant-based. Include "vegetarian" if no meat but may have dairy/eggs. Include "gluten-free" if no gluten ingredients.
-- ingredients: list every ingredient separately with its quantity.
-- instructions: format as numbered steps, one per line.
+- Extract ALL information present in the document — do not skip any field if the data is available.
+- If prep or cook time is not explicitly mentioned, estimate based on the steps.
+- If servings is not mentioned, estimate based on the recipe type and quantities.
+- dietary_tags: include "meat" if contains meat/poultry/fish, "dairy" if contains dairy, "non-dairy" if no dairy, "vegan" if fully plant-based, "vegetarian" if no meat, "gluten-free" if no gluten ingredients.
+- ingredients: list every single ingredient separately with quantity. Do not combine ingredients.
+- instructions: format as clear numbered steps, one per line.
+- notes: include any chef tips, variations, how to store, how to reheat, substitutions, or serving suggestions.
 - Return ONLY the JSON object, no other text.`
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
+    max_tokens: 4096,
     messages: [
       {
         role: 'user',
