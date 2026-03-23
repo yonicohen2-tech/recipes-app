@@ -348,7 +348,7 @@ export default function AddRecipePage() {
               ) : (
                 <>
                   <Upload size={24} className="text-gray-400 mb-1" />
-                  <span className="text-sm text-gray-500">{file ? file.name : 'PDF, JPG, PNG... (auto-fills the form)'}</span>
+                  <span className="text-sm text-gray-500">{file ? file.name : 'PDF, JPG, PNG, DOCX... (auto-fills the form)'}</span>
                 </>
               )}
               <input

@@ -1,46 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import mammoth from 'mammoth'
 
 export const maxDuration = 60
 
 const client = new Anthropic()
 
 const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+const DOCX_TYPES = ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword']
 
-export async function POST(req: NextRequest) {
-  const formData = await req.formData()
-  const file = formData.get('file') as File | null
-
-  if (!file) {
-    return NextResponse.json({ error: 'No file provided' }, { status: 400 })
-  }
-
-  const mimeType = file.type
-  const isImage = SUPPORTED_IMAGE_TYPES.includes(mimeType)
-  const isPdf = mimeType === 'application/pdf'
-
-  if (!isImage && !isPdf) {
-    return NextResponse.json({ error: 'Unsupported file type. Please upload a PDF or image.' }, { status: 400 })
-  }
-
-  const buffer = await file.arrayBuffer()
-  const base64 = Buffer.from(buffer).toString('base64')
-
-  const contentBlock = isPdf
-    ? {
-        type: 'document' as const,
-        source: { type: 'base64' as const, media_type: 'application/pdf' as const, data: base64 },
-      }
-    : {
-        type: 'image' as const,
-        source: {
-          type: 'base64' as const,
-          media_type: mimeType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
-          data: base64,
-        },
-      }
-
-  const prompt = `You are analyzing a recipe document. Extract ALL possible information and return it as a single JSON object with exactly these keys:
+const RECIPE_PROMPT = `You are analyzing a recipe document. Extract ALL possible information and return it as a single JSON object with exactly these keys:
 
 {
   "title": string (name of the recipe, in original language),
@@ -66,23 +35,64 @@ Rules:
 - notes: include any chef tips, variations, how to store, how to reheat, substitutions, or serving suggestions.
 - Return ONLY the JSON object, no other text.`
 
+function parseResponse(text: string) {
+  const jsonMatch = text.match(/\{[\s\S]*\}/)
+  return JSON.parse(jsonMatch ? jsonMatch[0] : text)
+}
+
+export async function POST(req: NextRequest) {
+  const formData = await req.formData()
+  const file = formData.get('file') as File | null
+
+  if (!file) {
+    return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+  }
+
+  const mimeType = file.type
+  const isImage = SUPPORTED_IMAGE_TYPES.includes(mimeType)
+  const isPdf = mimeType === 'application/pdf'
+  const isDocx = DOCX_TYPES.includes(mimeType) || file.name.endsWith('.docx') || file.name.endsWith('.doc')
+
+  if (!isImage && !isPdf && !isDocx) {
+    return NextResponse.json({ error: 'Unsupported file type. Please upload a PDF, image, or Word document.' }, { status: 400 })
+  }
+
+  const buffer = Buffer.from(await file.arrayBuffer())
+
+  // DOCX: extract text with mammoth, send as text prompt
+  if (isDocx) {
+    const { value: text } = await mammoth.extractRawText({ buffer })
+    if (!text.trim()) return NextResponse.json({ error: 'Could not extract text from Word document.' }, { status: 400 })
+
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 4096,
+      messages: [{ role: 'user', content: `${RECIPE_PROMPT}\n\nDocument text:\n${text.slice(0, 8000)}` }],
+    })
+    const responseText = message.content[0].type === 'text' ? message.content[0].text : ''
+    try {
+      return NextResponse.json(parseResponse(responseText))
+    } catch {
+      return NextResponse.json({ error: 'Failed to parse recipe data from document' }, { status: 500 })
+    }
+  }
+
+  const base64 = buffer.toString('base64')
+
+  const contentBlock = isPdf
+    ? { type: 'document' as const, source: { type: 'base64' as const, media_type: 'application/pdf' as const, data: base64 } }
+    : { type: 'image' as const, source: { type: 'base64' as const, media_type: mimeType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp', data: base64 } }
+
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 4096,
-    messages: [
-      {
-        role: 'user',
-        content: [contentBlock, { type: 'text', text: prompt }],
-      },
-    ],
+    messages: [{ role: 'user', content: [contentBlock, { type: 'text', text: RECIPE_PROMPT }] }],
   })
 
   const text = message.content[0].type === 'text' ? message.content[0].text : ''
 
   try {
-    const jsonMatch = text.match(/\{[\s\S]*\}/)
-    const data = JSON.parse(jsonMatch ? jsonMatch[0] : text)
-    return NextResponse.json(data)
+    return NextResponse.json(parseResponse(text))
   } catch {
     return NextResponse.json({ error: 'Failed to parse recipe data from file' }, { status: 500 })
   }
