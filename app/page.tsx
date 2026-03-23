@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useLang } from '@/lib/context'
 import Navbar from '@/components/Navbar'
 import type { Recipe, CourseType, DietaryTag } from '@/lib/types'
-import { Search, Clock, ChefHat, X } from 'lucide-react'
+import { Search, Clock, ChefHat, X, PlayCircle } from 'lucide-react'
 
 const COURSE_TYPES: CourseType[] = ['appetizer', 'first-course', 'main-course', 'side-dish', 'dessert', 'drink', 'snack']
 const DIETARY_TAGS: DietaryTag[] = ['dairy', 'non-dairy', 'gluten-free', 'vegan', 'vegetarian', 'meat']
@@ -162,6 +162,7 @@ export default function HomePage() {
                     <th className="text-start px-4 py-3 font-semibold text-gray-600">{t('prepTime')}</th>
                     <th className="text-start px-4 py-3 font-semibold text-gray-600">{t('ingredients')}</th>
                     <th className="text-start px-4 py-3 font-semibold text-gray-600">{t('addedBy')}</th>
+                    <th className="text-start px-4 py-3 font-semibold text-gray-600">Video</th>
                   </tr>
                   {/* Column filters */}
                   <tr className="border-b border-gray-200 bg-orange-50/40">
@@ -200,6 +201,7 @@ export default function HomePage() {
                         {uniqueAuthors.map((name) => <option key={name} value={name}>{name}</option>)}
                       </select>
                     </td>
+                    <td className="px-3 py-2" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -247,6 +249,21 @@ export default function HomePage() {
                       </td>
                       <td className="px-4 py-3 text-gray-500 whitespace-nowrap text-xs">
                         {recipe.added_by_name}
+                      </td>
+                      <td className="px-4 py-3">
+                        {recipe.video_url ? (
+                          <a
+                            href={recipe.video_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-red-500 hover:text-red-600 transition-colors"
+                            title="Watch video"
+                          >
+                            <PlayCircle size={20} />
+                          </a>
+                        ) : (
+                          <span className="text-gray-200">—</span>
+                        )}
                       </td>
                     </tr>
                   ))}
