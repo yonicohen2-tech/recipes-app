@@ -10,7 +10,7 @@ import Navbar from '@/components/Navbar'
 import type { Recipe, Comment, CourseType, DietaryTag } from '@/lib/types'
 import { detectDir } from '@/lib/types'
 import type { User } from '@supabase/supabase-js'
-import { Search, Clock, ChefHat, X, PlayCircle, MessageCircle, Trash2, Send } from 'lucide-react'
+import { Search, Clock, ChefHat, X, PlayCircle, MessageCircle, Trash2, Send, Mic, MicOff } from 'lucide-react'
 import CookingAnimation from '@/components/CookingAnimation'
 
 const COURSE_TYPES: CourseType[] = ['appetizer', 'first-course', 'main-course', 'side-dish', 'dessert', 'drink', 'snack']
@@ -176,12 +176,15 @@ function CommentsModal({ recipe, user, t, onClose }: { recipe: Recipe, user: Use
 }
 
 export default function HomePage() {
-  const { t, isRTL } = useLang()
+  const { t, isRTL, lang } = useLang()
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [loading, setLoading] = useState(true)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [commentsRecipe, setCommentsRecipe] = useState<Recipe | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [listening, setListening] = useState(false)
+  const [voiceText, setVoiceText] = useState('')
+  const [maxTime, setMaxTime] = useState<number | null>(null)
 
   // Column filters
   const [search, setSearch] = useState('')
@@ -215,7 +218,42 @@ export default function HomePage() {
   const hasActiveFilters = search || courseFilter || dietaryFilter || difficultyFilter || addedByFilter
 
   const clearFilters = () => {
-    setSearch(''); setCourseFilter(''); setDietaryFilter(''); setDifficultyFilter(''); setAddedByFilter('')
+    setSearch(''); setCourseFilter(''); setDietaryFilter(''); setDifficultyFilter(''); setAddedByFilter(''); setMaxTime(null); setVoiceText('')
+  }
+
+  const startVoiceSearch = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) { alert('Voice search is not supported in this browser. Try Chrome.'); return }
+
+    const recognition = new SpeechRecognition()
+    recognition.lang = lang === 'he' ? 'he-IL' : 'en-US'
+    recognition.interimResults = false
+    recognition.maxAlternatives = 1
+
+    setListening(true)
+    setVoiceText('')
+
+    recognition.onresult = async (event: any) => {
+      const transcript = event.results[0][0].transcript
+      setVoiceText(transcript)
+      setListening(false)
+
+      const res = await fetch('/api/parse-voice-query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: transcript }),
+      })
+      const filters = await res.json()
+      if (filters.search) setSearch(filters.search)
+      if (filters.course_type) setCourseFilter(filters.course_type)
+      if (filters.dietary) setDietaryFilter(filters.dietary)
+      if (filters.difficulty) setDifficultyFilter(filters.difficulty)
+      if (filters.max_time) setMaxTime(filters.max_time)
+    }
+
+    recognition.onerror = () => setListening(false)
+    recognition.onend = () => setListening(false)
+    recognition.start()
   }
 
   const filtered = recipes.filter((r) => {
@@ -224,7 +262,8 @@ export default function HomePage() {
     const matchDietary = !dietaryFilter || r.dietary_tags.includes(dietaryFilter as DietaryTag)
     const matchDifficulty = !difficultyFilter || r.difficulty === difficultyFilter
     const matchAuthor = !addedByFilter || r.added_by_name === addedByFilter
-    return matchSearch && matchCourse && matchDietary && matchDifficulty && matchAuthor
+    const matchTime = !maxTime || (r.prep_time + r.cook_time) <= maxTime
+    return matchSearch && matchCourse && matchDietary && matchDifficulty && matchAuthor && matchTime
   })
 
   return (
@@ -244,6 +283,22 @@ export default function HomePage() {
               style={isRTL ? { paddingRight: 36, paddingLeft: 16 } : { paddingLeft: 36, paddingRight: 16 }}
             />
           </div>
+
+          {/* Voice search button */}
+          <button
+            onClick={startVoiceSearch}
+            disabled={listening}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
+              listening
+                ? 'bg-red-500 text-white border-red-500 animate-pulse'
+                : 'border-gray-200 text-gray-600 hover:bg-orange-50 hover:border-orange-300 hover:text-orange-500'
+            }`}
+            title="Voice search"
+          >
+            {listening ? <MicOff size={16} /> : <Mic size={16} />}
+            {listening ? 'Listening...' : 'Voice'}
+          </button>
+
           {hasActiveFilters && (
             <button onClick={clearFilters} className="flex items-center gap-1 text-sm text-gray-500 hover:text-red-500 border border-gray-200 rounded-lg px-3 py-2 transition-colors">
               <X size={14} /> Clear filters
@@ -251,6 +306,15 @@ export default function HomePage() {
           )}
           <span className="text-sm text-gray-400 ml-auto">{filtered.length} {filtered.length === 1 ? 'recipe' : 'recipes'}</span>
         </div>
+
+        {/* Voice feedback */}
+        {voiceText && (
+          <div className="mb-4 px-4 py-2 bg-orange-50 border border-orange-200 rounded-xl text-sm text-orange-700 flex items-center gap-2" dir={isRTL ? 'rtl' : 'ltr'}>
+            <Mic size={14} className="shrink-0" />
+            <span>"{voiceText}"</span>
+            {maxTime && <span className="text-orange-500 font-medium ml-2">⏱ max {maxTime} min</span>}
+          </div>
+        )}
 
         {loading ? (
           <p className="text-center text-gray-400 py-16">{t('loading')}</p>
