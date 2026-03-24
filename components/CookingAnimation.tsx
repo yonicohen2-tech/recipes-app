@@ -118,7 +118,7 @@ export default function CookingAnimation() {
           <p className="text-orange-400 font-bold text-lg tracking-wide" style={{ animation: 'wiggle 3s ease-in-out infinite', display: 'inline-block' }}>
             👨‍👩‍👧‍👦 Family Recipes
           </p>
-          <p className="text-orange-300 text-xs font-medium hidden sm:block">Cook together, eat together ❤️</p>
+          <p className="text-orange-400 text-sm font-medium hidden sm:block" dir="rtl">אמא.....אני רעב, מה יש לאכול 😄</p>
         </div>
       </div>
     </>
