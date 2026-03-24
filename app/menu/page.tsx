@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useLang } from '@/lib/context'
 import Navbar from '@/components/Navbar'
 import type { Recipe, CourseType } from '@/lib/types'
-import { Clock, ChefHat, Check, X, UtensilsCrossed } from 'lucide-react'
+import { Clock, ChefHat, Check, X, UtensilsCrossed, MessageCircle } from 'lucide-react'
 
 const COURSE_ORDER: CourseType[] = [
   'appetizer',
@@ -201,6 +201,36 @@ export default function MenuPlannerPage() {
                           <Clock size={14} />
                           {totalTime} {t('minutes')}
                         </span>
+                      </div>
+
+                      <div className="px-5 py-3">
+                        <a
+                          href={`https://wa.me/?text=${encodeURIComponent(
+                            `🍽️ ${t('yourMenu')}\n\n` +
+                            COURSE_ORDER.flatMap((course) => {
+                              const items = grouped[course].filter((r) => selected.has(r.id))
+                              if (items.length === 0) return []
+                              return [
+                                `*${t(course as any)}*`,
+                                ...items.map((r) => {
+                                  let line = `• ${r.title} (${r.prep_time + r.cook_time} ${t('minutes')})`
+                                  if (r.ingredients?.length) {
+                                    line += `\n  ${r.ingredients.map(i => `- ${i}`).join('\n  ')}`
+                                  }
+                                  return line
+                                }),
+                                ''
+                              ]
+                            }).join('\n') +
+                            `⏱️ ${t('totalTime')}: ${totalTime} ${t('minutes')}`
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-2 w-full bg-green-500 hover:bg-green-600 text-white text-sm font-medium py-2 rounded-xl transition-colors"
+                        >
+                          <MessageCircle size={16} />
+                          WhatsApp
+                        </a>
                       </div>
                     </div>
                   )}
