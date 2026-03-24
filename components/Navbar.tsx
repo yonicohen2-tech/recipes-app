@@ -38,12 +38,20 @@ export default function Navbar() {
 
         <div className="flex items-center gap-3">
           {/* Language toggle */}
-          <button
-            onClick={() => setLang(lang === 'en' ? 'he' : 'en')}
-            className="text-sm px-2 py-1 rounded border border-gray-300 hover:bg-gray-100 font-medium"
-          >
-            {lang === 'en' ? 'עב' : 'EN'}
-          </button>
+          <div className="flex items-center rounded border border-gray-300 overflow-hidden text-sm font-medium">
+            <button
+              onClick={() => setLang('en')}
+              className={`px-2 py-1 transition-colors ${lang === 'en' ? 'bg-orange-500 text-white' : 'hover:bg-gray-100 text-gray-600'}`}
+            >
+              EN
+            </button>
+            <button
+              onClick={() => setLang('he')}
+              className={`px-2 py-1 transition-colors ${lang === 'he' ? 'bg-orange-500 text-white' : 'hover:bg-gray-100 text-gray-600'}`}
+            >
+              עב
+            </button>
+          </div>
 
           {user ? (
             <>
