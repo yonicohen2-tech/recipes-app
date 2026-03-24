@@ -116,7 +116,7 @@ export default function CookingAnimation() {
         {/* Title text */}
         <div className="absolute top-3 left-4 right-4 flex items-center justify-between">
           <p className="text-orange-400 font-bold text-lg tracking-wide" style={{ animation: 'wiggle 3s ease-in-out infinite', display: 'inline-block' }}>
-            👨‍👩‍👧‍👦 Family Recipes
+            👨‍👩‍👧‍👦 TheCohenCookingClan
           </p>
         </div>
         {/* Hebrew tagline - centered and big */}

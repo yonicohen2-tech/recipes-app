@@ -1,6 +1,6 @@
 export const translations = {
   en: {
-    appName: 'Family Recipes',
+    appName: 'TheCohenCookingClan',
     recipes: 'Recipes',
     addRecipe: 'Add Recipe',
     login: 'Login',
@@ -87,7 +87,7 @@ export const translations = {
     menuEmpty: 'Select recipes from the categories above to build your menu.',
   },
   he: {
-    appName: 'מתכוני המשפחה',
+    appName: 'TheCohenCookingClan',
     recipes: 'מתכונים',
     addRecipe: 'הוסף מתכון',
     login: 'התחברות',
