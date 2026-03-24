@@ -52,7 +52,7 @@ export default function CookingAnimation() {
         }
       `}</style>
 
-      <div className="relative w-full bg-gradient-to-r from-orange-50 via-amber-50 to-orange-50 rounded-2xl border border-orange-100 mb-6 overflow-hidden" style={{ height: 110 }}>
+      <div className="relative w-full bg-gradient-to-r from-orange-50 via-amber-50 to-orange-50 rounded-2xl border border-orange-100 mb-6 overflow-hidden" style={{ height: 130 }}>
 
         {/* Floating food items */}
         {items.map((item, i) => (
@@ -118,7 +118,16 @@ export default function CookingAnimation() {
           <p className="text-orange-400 font-bold text-lg tracking-wide" style={{ animation: 'wiggle 3s ease-in-out infinite', display: 'inline-block' }}>
             👨‍👩‍👧‍👦 Family Recipes
           </p>
-          <p className="text-orange-400 text-sm font-medium hidden sm:block" dir="rtl">אמא.....אני רעב, מה יש לאכול 😄</p>
+        </div>
+        {/* Hebrew tagline - centered and big */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <p
+            className="text-orange-500 font-extrabold text-2xl sm:text-3xl text-center drop-shadow-sm"
+            dir="rtl"
+            style={{ animation: 'wiggle 4s ease-in-out infinite', textShadow: '0 2px 8px rgba(249,115,22,0.15)' }}
+          >
+            אמא..... אני רעב, מה יש לאכול? 😄
+          </p>
         </div>
       </div>
     </>
