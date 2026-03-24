@@ -15,6 +15,7 @@ import CookingAnimation from '@/components/CookingAnimation'
 
 const COURSE_TYPES: CourseType[] = ['appetizer', 'first-course', 'main-course', 'side-dish', 'dessert', 'drink', 'snack']
 const DIETARY_TAGS: DietaryTag[] = ['dairy', 'non-dairy', 'gluten-free', 'vegan', 'vegetarian', 'meat']
+const DIETARY_TAGS_NO_GLUTEN: DietaryTag[] = ['dairy', 'non-dairy', 'vegan', 'vegetarian', 'meat']
 const DIFFICULTIES = ['easy', 'medium', 'hard'] as const
 
 const difficultyColor = {
@@ -193,6 +194,7 @@ export default function HomePage() {
   const [search, setSearch] = useState('')
   const [courseFilter, setCourseFilter] = useState('')
   const [dietaryFilter, setDietaryFilter] = useState('')
+  const [glutenFilter, setGlutenFilter] = useState<'' | 'yes' | 'no'>('')
   const [difficultyFilter, setDifficultyFilter] = useState('')
   const [addedByFilter, setAddedByFilter] = useState('')
 
@@ -218,10 +220,10 @@ export default function HomePage() {
     [recipes]
   )
 
-  const hasActiveFilters = search || courseFilter || dietaryFilter || difficultyFilter || addedByFilter
+  const hasActiveFilters = search || courseFilter || dietaryFilter || glutenFilter || difficultyFilter || addedByFilter
 
   const clearFilters = () => {
-    setSearch(''); setCourseFilter(''); setDietaryFilter(''); setDifficultyFilter(''); setAddedByFilter(''); setMaxTime(null); setVoiceText('')
+    setSearch(''); setCourseFilter(''); setDietaryFilter(''); setGlutenFilter(''); setDifficultyFilter(''); setAddedByFilter(''); setMaxTime(null); setVoiceText('')
   }
 
   const applyVoiceFilters = async (transcript: string) => {
@@ -236,7 +238,8 @@ export default function HomePage() {
       const filters = await res.json()
       if (filters.search) setSearch(filters.search)
       if (filters.course_type) setCourseFilter(filters.course_type)
-      if (filters.dietary) setDietaryFilter(filters.dietary)
+      if (filters.dietary === 'gluten-free') setGlutenFilter('yes')
+      else if (filters.dietary) setDietaryFilter(filters.dietary)
       if (filters.difficulty) setDifficultyFilter(filters.difficulty)
       if (filters.max_time) setMaxTime(filters.max_time)
     } finally {
@@ -274,10 +277,11 @@ export default function HomePage() {
     const matchSearch = !search || r.title.toLowerCase().includes(search.toLowerCase()) || (r.description || '').toLowerCase().includes(search.toLowerCase())
     const matchCourse = !courseFilter || r.course_type === courseFilter
     const matchDietary = !dietaryFilter || r.dietary_tags.includes(dietaryFilter as DietaryTag)
+    const matchGluten = !glutenFilter || (glutenFilter === 'yes' ? r.dietary_tags.includes('gluten-free') : !r.dietary_tags.includes('gluten-free'))
     const matchDifficulty = !difficultyFilter || r.difficulty === difficultyFilter
     const matchAuthor = !addedByFilter || r.added_by_name === addedByFilter
     const matchTime = !maxTime || (r.prep_time + r.cook_time) <= maxTime
-    return matchSearch && matchCourse && matchDietary && matchDifficulty && matchAuthor && matchTime
+    return matchSearch && matchCourse && matchDietary && matchGluten && matchDifficulty && matchAuthor && matchTime
   })
 
   return (
@@ -376,7 +380,8 @@ export default function HomePage() {
                   <tr className="border-b border-gray-100 bg-gray-50">
                     <th className="text-start px-4 py-3 font-semibold text-gray-600">{t('title')}</th>
                     <th className="text-start px-4 py-3 font-semibold text-gray-600">{t('courseType')}</th>
-                    <th className="text-start px-4 py-3 font-semibold text-gray-600">{t('dietaryTags')}</th>
+                    <th className="text-start px-4 py-3 font-semibold text-gray-600">{t('dairyMeatCol')}</th>
+                    <th className="text-start px-4 py-3 font-semibold text-gray-600">{t('glutenFreeCol')}</th>
                     <th className="text-start px-4 py-3 font-semibold text-gray-600">{t('difficultyLabel')}</th>
                     <th className="text-start px-4 py-3 font-semibold text-gray-600">{t('prepTime')}</th>
                     <th className="text-start px-4 py-3 font-semibold text-gray-600">{t('ingredients')}</th>
@@ -398,7 +403,14 @@ export default function HomePage() {
                     <td className="px-3 py-2">
                       <select value={dietaryFilter} onChange={(e) => setDietaryFilter(e.target.value)} className={selectClass}>
                         <option value="">{t('allDietary')}</option>
-                        {DIETARY_TAGS.map((d) => <option key={d} value={d}>{t(d as any)}</option>)}
+                        {DIETARY_TAGS_NO_GLUTEN.map((d) => <option key={d} value={d}>{t(d as any)}</option>)}
+                      </select>
+                    </td>
+                    <td className="px-3 py-2">
+                      <select value={glutenFilter} onChange={(e) => setGlutenFilter(e.target.value as '' | 'yes' | 'no')} className={selectClass}>
+                        <option value="">All</option>
+                        <option value="yes">✓</option>
+                        <option value="no">—</option>
                       </select>
                     </td>
                     <td className="px-3 py-2">
@@ -418,11 +430,12 @@ export default function HomePage() {
                     <td className="px-3 py-2" />
                     <td className="px-3 py-2" />
                     <td className="px-3 py-2" />
+                    <td className="px-3 py-2" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {filtered.length === 0 ? (
-                    <tr><td colSpan={10} className="text-center py-10 text-gray-400">{t('noRecipes')}</td></tr>
+                    <tr><td colSpan={11} className="text-center py-10 text-gray-400">{t('noRecipes')}</td></tr>
                   ) : filtered.map((recipe) => (
                     <tr key={recipe.id} className="hover:bg-orange-50/30 transition-colors">
                       <td className="px-4 py-3">
@@ -438,12 +451,19 @@ export default function HomePage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
-                          {recipe.dietary_tags.length > 0 ? recipe.dietary_tags.map((tag) => (
-                            <span key={tag} className={`text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${dietaryColor[tag] || 'bg-gray-100 text-gray-600'}`}>
-                              {t(tag as any)}
-                            </span>
-                          )) : <span className="text-gray-300">—</span>}
+                          {recipe.dietary_tags.filter(tag => tag !== 'gluten-free').length > 0
+                            ? recipe.dietary_tags.filter(tag => tag !== 'gluten-free').map((tag) => (
+                                <span key={tag} className={`text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${dietaryColor[tag] || 'bg-gray-100 text-gray-600'}`}>
+                                  {t(tag as any)}
+                                </span>
+                              ))
+                            : <span className="text-gray-300">—</span>}
                         </div>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {recipe.dietary_tags.includes('gluten-free')
+                          ? <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">✓</span>
+                          : <span className="text-gray-300">—</span>}
                       </td>
                       <td className="px-4 py-3">
                         <span className={`text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap ${difficultyColor[recipe.difficulty]}`}>
