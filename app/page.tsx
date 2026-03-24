@@ -185,6 +185,9 @@ export default function HomePage() {
   const [listening, setListening] = useState(false)
   const [voiceText, setVoiceText] = useState('')
   const [maxTime, setMaxTime] = useState<number | null>(null)
+  const [showVoiceInput, setShowVoiceInput] = useState(false)
+  const [voiceInputText, setVoiceInputText] = useState('')
+  const [processingVoice, setProcessingVoice] = useState(false)
 
   // Column filters
   const [search, setSearch] = useState('')
@@ -221,23 +224,10 @@ export default function HomePage() {
     setSearch(''); setCourseFilter(''); setDietaryFilter(''); setDifficultyFilter(''); setAddedByFilter(''); setMaxTime(null); setVoiceText('')
   }
 
-  const startVoiceSearch = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (!SpeechRecognition) { alert('Voice search is not supported in this browser. Try Chrome.'); return }
-
-    const recognition = new SpeechRecognition()
-    recognition.lang = lang === 'he' ? 'he-IL' : 'en-US'
-    recognition.interimResults = false
-    recognition.maxAlternatives = 1
-
-    setListening(true)
-    setVoiceText('')
-
-    recognition.onresult = async (event: any) => {
-      const transcript = event.results[0][0].transcript
-      setVoiceText(transcript)
-      setListening(false)
-
+  const applyVoiceFilters = async (transcript: string) => {
+    setVoiceText(transcript)
+    setProcessingVoice(true)
+    try {
       const res = await fetch('/api/parse-voice-query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -249,8 +239,32 @@ export default function HomePage() {
       if (filters.dietary) setDietaryFilter(filters.dietary)
       if (filters.difficulty) setDifficultyFilter(filters.difficulty)
       if (filters.max_time) setMaxTime(filters.max_time)
+    } finally {
+      setProcessingVoice(false)
+      setShowVoiceInput(false)
+      setVoiceInputText('')
+    }
+  }
+
+  const startVoiceSearch = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      // iOS fallback: show text input
+      setShowVoiceInput(true)
+      return
     }
 
+    const recognition = new SpeechRecognition()
+    recognition.lang = lang === 'he' ? 'he-IL' : 'en-US'
+    recognition.interimResults = false
+    recognition.maxAlternatives = 1
+    setListening(true)
+    setVoiceText('')
+
+    recognition.onresult = async (event: any) => {
+      setListening(false)
+      await applyVoiceFilters(event.results[0][0].transcript)
+    }
     recognition.onerror = () => setListening(false)
     recognition.onend = () => setListening(false)
     recognition.start()
@@ -306,6 +320,37 @@ export default function HomePage() {
           )}
           <span className="text-sm text-gray-400 ml-auto">{filtered.length} {filtered.length === 1 ? 'recipe' : 'recipes'}</span>
         </div>
+
+        {/* iOS text input fallback */}
+        {showVoiceInput && (
+          <div className="mb-4 bg-orange-50 border border-orange-200 rounded-xl p-3">
+            <p className="text-xs text-orange-600 mb-2 font-medium">
+              🎤 Type your request — or use your keyboard's dictation button (🎤 on iPhone keyboard)
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={voiceInputText}
+                onChange={(e) => setVoiceInputText(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && voiceInputText.trim() && applyVoiceFilters(voiceInputText)}
+                placeholder={lang === 'he' ? 'לדוגמה: מתכון חלבי עד 30 דקות...' : 'e.g. dairy recipe under 30 minutes...'}
+                autoFocus
+                className="flex-1 border border-orange-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
+                dir={isRTL ? 'rtl' : 'ltr'}
+              />
+              <button
+                onClick={() => voiceInputText.trim() && applyVoiceFilters(voiceInputText)}
+                disabled={!voiceInputText.trim() || processingVoice}
+                className="bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                {processingVoice ? '...' : 'Search'}
+              </button>
+              <button onClick={() => setShowVoiceInput(false)} className="text-gray-400 hover:text-gray-600 px-2">
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Voice feedback */}
         {voiceText && (
