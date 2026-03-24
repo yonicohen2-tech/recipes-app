@@ -255,7 +255,7 @@ export default function HomePage() {
     }
 
     const recognition = new SpeechRecognition()
-    recognition.lang = lang === 'he' ? 'he-IL' : 'en-US'
+    recognition.lang = ''
     recognition.interimResults = false
     recognition.maxAlternatives = 1
     setListening(true)
