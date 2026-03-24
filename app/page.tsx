@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useLang } from '@/lib/context'
 import Navbar from '@/components/Navbar'
 import type { Recipe, Comment, CourseType, DietaryTag } from '@/lib/types'
+import { detectDir } from '@/lib/types'
 import type { User } from '@supabase/supabase-js'
 import { Search, Clock, ChefHat, X, PlayCircle, MessageCircle, Trash2, Send } from 'lucide-react'
 import CookingAnimation from '@/components/CookingAnimation'
@@ -316,10 +317,10 @@ export default function HomePage() {
                   ) : filtered.map((recipe) => (
                     <tr key={recipe.id} className="hover:bg-orange-50/30 transition-colors">
                       <td className="px-4 py-3">
-                        <Link href={`/recipes/${recipe.id}`} className="font-medium text-gray-900 hover:text-orange-500 transition-colors">
+                        <Link href={`/recipes/${recipe.id}`} className="font-medium text-gray-900 hover:text-orange-500 transition-colors" dir={detectDir(recipe.title)}>
                           {recipe.title}
                         </Link>
-                        {recipe.description && <p className="text-gray-400 text-xs mt-0.5 line-clamp-1">{recipe.description}</p>}
+                        {recipe.description && <p className="text-gray-400 text-xs mt-0.5 line-clamp-1" dir={detectDir(recipe.description)}>{recipe.description}</p>}
                       </td>
                       <td className="px-4 py-3">
                         <span className="bg-orange-100 text-orange-700 text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap">

@@ -1,4 +1,9 @@
 export type DietaryTag = 'dairy' | 'non-dairy' | 'gluten-free' | 'vegan' | 'vegetarian' | 'meat'
+
+export function detectDir(text: string | null | undefined): 'rtl' | 'ltr' {
+  if (!text) return 'ltr'
+  return /[\u0590-\u05FF]/.test(text) ? 'rtl' : 'ltr'
+}
 export type CourseType = 'appetizer' | 'first-course' | 'main-course' | 'side-dish' | 'dessert' | 'drink' | 'snack'
 export type Difficulty = 'easy' | 'medium' | 'hard'
 

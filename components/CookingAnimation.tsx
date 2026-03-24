@@ -120,11 +120,19 @@ export default function CookingAnimation() {
           </p>
         </div>
         {/* Hebrew tagline - centered and big */}
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 10 }}>
           <p
-            className="text-orange-500 font-extrabold text-2xl sm:text-3xl text-center drop-shadow-sm"
+            className="font-extrabold text-center px-4"
             dir="rtl"
-            style={{ animation: 'wiggle 4s ease-in-out infinite', textShadow: '0 2px 8px rgba(249,115,22,0.15)' }}
+            style={{
+              fontSize: '2rem',
+              color: '#ea580c',
+              animation: 'wiggle 4s ease-in-out infinite',
+              textShadow: '0 2px 12px rgba(249,115,22,0.3)',
+              background: 'rgba(255,255,255,0.7)',
+              borderRadius: '1rem',
+              padding: '0.5rem 1.5rem',
+            }}
           >
             אמא..... אני רעב, מה יש לאכול? 😄
           </p>

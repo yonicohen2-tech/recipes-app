@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useLang } from '@/lib/context'
 import Navbar from '@/components/Navbar'
 import type { Recipe, Comment } from '@/lib/types'
+import { detectDir } from '@/lib/types'
 import type { User } from '@supabase/supabase-js'
 import { Clock, ChefHat, User as UserIcon, ExternalLink, FileText, Trash2, Send, Download, Mail, MessageCircle } from 'lucide-react'
 
@@ -131,7 +132,7 @@ export default function RecipeDetailPage() {
           </div>
 
           {recipe.description && (
-            <p className="text-gray-600 mb-4">{recipe.description}</p>
+            <p className="text-gray-600 mb-4" dir={detectDir(recipe.description)}>{recipe.description}</p>
           )}
 
           {/* Tags */}
@@ -194,7 +195,7 @@ export default function RecipeDetailPage() {
                     <span className="w-2 h-2 rounded-full bg-orange-400 inline-block" />
                     {t('ingredients')}
                   </h2>
-                  <ul className="space-y-2">
+                  <ul className="space-y-2" dir={detectDir(recipe.ingredients[0])}>
                     {recipe.ingredients.map((ing, i) => (
                       <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
                         <span className="text-orange-400 font-bold mt-0.5 shrink-0">•</span>
@@ -210,7 +211,7 @@ export default function RecipeDetailPage() {
                     <span className="w-2 h-2 rounded-full bg-orange-400 inline-block" />
                     {t('instructions')}
                   </h2>
-                  <div className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
+                  <div className="text-sm text-gray-700 whitespace-pre-line leading-relaxed" dir={detectDir(recipe.instructions)}>
                     {recipe.instructions}
                   </div>
                 </div>
@@ -222,7 +223,7 @@ export default function RecipeDetailPage() {
                   <span className="w-2 h-2 rounded-full bg-orange-400 inline-block" />
                   Tips & Notes
                 </h3>
-                <p className="text-sm text-gray-600 whitespace-pre-line leading-relaxed">{recipe.notes}</p>
+                <p className="text-sm text-gray-600 whitespace-pre-line leading-relaxed" dir={detectDir(recipe.notes)}>{recipe.notes}</p>
               </div>
             )}
             {recipe.file_url && (
