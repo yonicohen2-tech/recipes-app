@@ -10,7 +10,7 @@ import Navbar from '@/components/Navbar'
 import type { Recipe, Comment } from '@/lib/types'
 import { detectDir } from '@/lib/types'
 import type { User } from '@supabase/supabase-js'
-import { Clock, ChefHat, User as UserIcon, ExternalLink, FileText, Trash2, Send, Download, Mail, MessageCircle } from 'lucide-react'
+import { Clock, ChefHat, User as UserIcon, ExternalLink, FileText, Trash2, Send, Download, Mail, MessageCircle, Pencil } from 'lucide-react'
 
 const difficultyColor = {
   easy: 'bg-green-100 text-green-700',
@@ -120,13 +120,22 @@ export default function RecipeDetailPage() {
                 <MessageCircle size={20} />
               </a>
               {isOwner && (
-                <button
-                  onClick={() => setConfirmDelete(true)}
-                  className="text-gray-400 hover:text-red-500 transition-colors"
-                  title={t('deleteRecipe')}
-                >
-                  <Trash2 size={20} />
-                </button>
+                <>
+                  <a
+                    href={`/recipes/${id}/edit`}
+                    className="text-gray-400 hover:text-orange-500 transition-colors"
+                    title="Edit recipe"
+                  >
+                    <Pencil size={20} />
+                  </a>
+                  <button
+                    onClick={() => setConfirmDelete(true)}
+                    className="text-gray-400 hover:text-red-500 transition-colors"
+                    title={t('deleteRecipe')}
+                  >
+                    <Trash2 size={20} />
+                  </button>
+                </>
               )}
             </div>
           </div>
