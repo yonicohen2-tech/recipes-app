@@ -18,11 +18,11 @@ const LangContext = createContext<LangContextType>({
 })
 
 export function LangProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Lang>('en')
+  const [lang, setLangState] = useState<Lang>('he')
 
   useEffect(() => {
     const saved = localStorage.getItem('lang') as Lang
-    if (saved && (saved === 'en' || saved === 'he')) {
+    if (saved === 'en' || saved === 'he') {
       setLangState(saved)
     }
   }, [])
