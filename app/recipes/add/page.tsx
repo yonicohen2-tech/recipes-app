@@ -11,7 +11,7 @@ import type { CourseType, DietaryTag, Difficulty } from '@/lib/types'
 import { Upload, Sparkles, Loader2, Link2 } from 'lucide-react'
 
 const COURSE_TYPES: CourseType[] = ['appetizer', 'first-course', 'main-course', 'side-dish', 'dessert', 'drink', 'snack']
-const DIETARY_TAGS: DietaryTag[] = ['dairy', 'non-dairy', 'gluten-free', 'vegan', 'vegetarian', 'meat']
+const KASHRUT_TAGS: DietaryTag[] = ['dairy', 'non-dairy', 'meat', 'vegan', 'vegetarian']
 const DIFFICULTIES: Difficulty[] = ['easy', 'medium', 'hard']
 
 export default function AddRecipePage() {
@@ -198,12 +198,24 @@ export default function AddRecipePage() {
   }
 
   const toggleDietaryTag = (tag: DietaryTag) => {
-    setForm((f) => ({
-      ...f,
-      dietary_tags: f.dietary_tags.includes(tag)
-        ? f.dietary_tags.filter((t) => t !== tag)
-        : [...f.dietary_tags, tag],
-    }))
+    setForm((f) => {
+      if (tag === 'gluten-free') {
+        return {
+          ...f,
+          dietary_tags: f.dietary_tags.includes('gluten-free')
+            ? f.dietary_tags.filter((t) => t !== 'gluten-free')
+            : [...f.dietary_tags, 'gluten-free'],
+        }
+      }
+      // Kashrut tags are mutually exclusive
+      const withoutKashrut = f.dietary_tags.filter((t) => !KASHRUT_TAGS.includes(t as DietaryTag))
+      return {
+        ...f,
+        dietary_tags: f.dietary_tags.includes(tag)
+          ? withoutKashrut
+          : [...withoutKashrut, tag],
+      }
+    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -305,9 +317,9 @@ export default function AddRecipePage() {
 
           {/* Dietary tags */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t('dietaryTags')}</label>
-            <div className="flex flex-wrap gap-2">
-              {DIETARY_TAGS.map((tag) => (
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('dairyMeatCol')}</label>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {KASHRUT_TAGS.map((tag) => (
                 <button
                   key={tag}
                   type="button"
@@ -322,6 +334,15 @@ export default function AddRecipePage() {
                 </button>
               ))}
             </div>
+            <label className="flex items-center gap-2 cursor-pointer w-fit">
+              <input
+                type="checkbox"
+                checked={form.dietary_tags.includes('gluten-free')}
+                onChange={() => toggleDietaryTag('gluten-free')}
+                className="w-4 h-4 accent-orange-500"
+              />
+              <span className="text-sm text-gray-700">{t('gluten-free' as any)}</span>
+            </label>
           </div>
 
           {/* Difficulty */}
