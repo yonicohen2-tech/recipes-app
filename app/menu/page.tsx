@@ -7,8 +7,8 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useLang } from '@/lib/context'
 import Navbar from '@/components/Navbar'
-import type { Recipe, CourseType } from '@/lib/types'
-import { Clock, ChefHat, Check, X, UtensilsCrossed, MessageCircle } from 'lucide-react'
+import type { Recipe, CourseType, DietaryTag } from '@/lib/types'
+import { Clock, ChefHat, Check, X, UtensilsCrossed, MessageCircle, ShoppingCart } from 'lucide-react'
 
 const COURSE_ORDER: CourseType[] = [
   'appetizer',
@@ -19,6 +19,39 @@ const COURSE_ORDER: CourseType[] = [
   'drink',
   'snack',
 ]
+
+type SectionKey = DietaryTag | CourseType
+
+interface Section {
+  key: SectionKey
+  match: (r: Recipe) => boolean
+}
+
+const tags = (r: Recipe) => r.dietary_tags || []
+
+const SECTIONS: Section[] = [
+  { key: 'fish',        match: (r) => tags(r).includes('fish') },
+  { key: 'meat',        match: (r) => tags(r).includes('meat') && !tags(r).includes('fish') },
+  { key: 'side-dish',   match: (r) => r.course_type === 'side-dish' && !tags(r).includes('fish') && !tags(r).includes('meat') },
+  { key: 'appetizer',   match: (r) => r.course_type === 'appetizer' },
+  { key: 'first-course',match: (r) => r.course_type === 'first-course' },
+  { key: 'main-course', match: (r) => r.course_type === 'main-course' && !tags(r).includes('fish') && !tags(r).includes('meat') },
+  { key: 'dessert',     match: (r) => r.course_type === 'dessert' },
+  { key: 'drink',       match: (r) => r.course_type === 'drink' },
+  { key: 'snack',       match: (r) => r.course_type === 'snack' },
+]
+
+const SECTION_DOT: Partial<Record<SectionKey, string>> = {
+  fish: 'bg-blue-400',
+  meat: 'bg-red-400',
+  'side-dish': 'bg-green-400',
+}
+
+const SECTION_TEXT: Partial<Record<SectionKey, string>> = {
+  fish: 'text-blue-500',
+  meat: 'text-red-500',
+  'side-dish': 'text-green-600',
+}
 
 const difficultyColor = {
   easy: 'bg-green-100 text-green-700',
@@ -31,6 +64,7 @@ export default function MenuPlannerPage() {
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
+  const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     const supabase = createClient()
@@ -51,18 +85,27 @@ export default function MenuPlannerPage() {
       else next.add(id)
       return next
     })
+    setCheckedIngredients(new Set())
   }
 
-  const grouped = COURSE_ORDER.reduce<Record<CourseType, Recipe[]>>((acc, course) => {
-    acc[course] = recipes.filter((r) => r.course_type === course)
-    return acc
-  }, {} as Record<CourseType, Recipe[]>)
+  // Assign each recipe to its first matching section (no duplicates)
+  const assignedIds = new Set<string>()
+  const sectionRecipes: Record<string, Recipe[]> = {}
+  for (const section of SECTIONS) {
+    sectionRecipes[section.key] = recipes.filter((r) => {
+      if (assignedIds.has(r.id)) return false
+      if (section.match(r)) { assignedIds.add(r.id); return true }
+      return false
+    })
+  }
 
-  const selectedRecipes = COURSE_ORDER.flatMap((course) =>
-    grouped[course].filter((r) => selected.has(r.id))
-  )
+  const selectedRecipes = recipes.filter((r) => selected.has(r.id))
 
   const totalTime = selectedRecipes.reduce((sum, r) => sum + r.prep_time + r.cook_time, 0)
+
+  const allIngredients = selectedRecipes.flatMap((r) =>
+    (r.ingredients || []).map((ing) => ({ ingredient: ing, recipe: r.title }))
+  )
 
   return (
     <div dir={isRTL ? 'rtl' : 'ltr'}>
@@ -74,18 +117,20 @@ export default function MenuPlannerPage() {
         {loading ? (
           <p className="text-center text-gray-400 py-16">{t('loading')}</p>
         ) : (
+          <div className="space-y-6">
           <div className="flex flex-col lg:flex-row gap-6">
 
             {/* Left: category picker */}
             <div className="flex-1 space-y-6">
-              {COURSE_ORDER.map((course) => {
-                const courseRecipes = grouped[course]
+              {SECTIONS.map((section) => {
+                const courseRecipes = sectionRecipes[section.key] || []
                 if (courseRecipes.length === 0) return null
+                const dotColor = SECTION_DOT[section.key] || 'bg-orange-400'
                 return (
-                  <div key={course}>
+                  <div key={section.key}>
                     <h2 className="text-base font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-orange-400 inline-block" />
-                      {t(course as any)}
+                      <span className={`w-2 h-2 rounded-full ${dotColor} inline-block`} />
+                      {t(section.key as any)}
                       <span className="text-xs text-gray-400 font-normal">({courseRecipes.length})</span>
                     </h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -120,7 +165,7 @@ export default function MenuPlannerPage() {
                               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${difficultyColor[recipe.difficulty]}`}>
                                 {t(recipe.difficulty as any)}
                               </span>
-                              {recipe.dietary_tags.slice(0, 2).map((tag) => (
+                              {(recipe.dietary_tags || []).slice(0, 2).map((tag) => (
                                 <span key={tag} className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">
                                   {t(tag as any)}
                                 </span>
@@ -162,13 +207,14 @@ export default function MenuPlannerPage() {
                     </div>
                   ) : (
                     <div className="divide-y divide-gray-50">
-                      {COURSE_ORDER.map((course) => {
-                        const items = grouped[course].filter((r) => selected.has(r.id))
+                      {SECTIONS.map((section) => {
+                        const items = (sectionRecipes[section.key] || []).filter((r) => selected.has(r.id))
                         if (items.length === 0) return null
+                        const textColor = SECTION_TEXT[section.key] || 'text-orange-500'
                         return (
-                          <div key={course} className="px-5 py-3">
-                            <p className="text-xs font-semibold text-orange-500 uppercase tracking-wide mb-2">
-                              {t(course as any)}
+                          <div key={section.key} className="px-5 py-3">
+                            <p className={`text-xs font-semibold uppercase tracking-wide mb-2 ${textColor}`}>
+                              {t(section.key as any)}
                             </p>
                             {items.map((recipe) => (
                               <div key={recipe.id} className="flex items-center justify-between gap-2 py-1.5">
@@ -207,11 +253,11 @@ export default function MenuPlannerPage() {
                         <a
                           href={`https://wa.me/?text=${encodeURIComponent(
                             `🍽️ ${t('yourMenu')}\n\n` +
-                            COURSE_ORDER.flatMap((course) => {
-                              const items = grouped[course].filter((r) => selected.has(r.id))
+                            SECTIONS.flatMap((section) => {
+                              const items = (sectionRecipes[section.key] || []).filter((r) => selected.has(r.id))
                               if (items.length === 0) return []
                               return [
-                                `*${t(course as any)}*`,
+                                `*${t(section.key as any)}*`,
                                 ...items.map((r) => {
                                   let line = `• ${r.title} (${r.prep_time + r.cook_time} ${t('minutes')})`
                                   if (r.ingredients?.length) {
@@ -238,6 +284,74 @@ export default function MenuPlannerPage() {
               </div>
             </div>
 
+          </div>
+
+          {/* Shopping list — full width, always visible when recipes are selected */}
+          {selectedRecipes.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                <h2 className="font-bold text-gray-900 flex items-center gap-2">
+                  <ShoppingCart size={18} className="text-orange-500" />
+                  {t('shoppingList')}
+                  {allIngredients.length > 0 && (
+                    <span className="text-xs font-normal text-gray-400">
+                      ({allIngredients.length - checkedIngredients.size} {t('ingredients')} left)
+                    </span>
+                  )}
+                </h2>
+                {checkedIngredients.size > 0 && (
+                  <button onClick={() => setCheckedIngredients(new Set())} className="text-xs text-gray-400 hover:text-red-500 transition-colors">
+                    Reset
+                  </button>
+                )}
+              </div>
+              <div className="p-5">
+                <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 mb-4">
+                  {allIngredients.map(({ ingredient }, i) => {
+                    const have = checkedIngredients.has(i)
+                    return (
+                      <li
+                        key={i}
+                        className="flex items-start gap-2 cursor-pointer group"
+                        onClick={() => setCheckedIngredients((prev) => {
+                          const next = new Set(prev)
+                          have ? next.delete(i) : next.add(i)
+                          return next
+                        })}
+                      >
+                        <span className={`mt-0.5 shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${have ? 'bg-green-500 border-green-500' : 'border-gray-300 group-hover:border-orange-400'}`}>
+                          {have && <Check size={10} className="text-white" strokeWidth={3} />}
+                        </span>
+                        <span className={`text-sm transition-colors ${have ? 'line-through text-gray-300' : 'text-gray-700'}`} dir="auto">
+                          {ingredient}
+                        </span>
+                      </li>
+                    )
+                  })}
+                </ul>
+                {allIngredients.length === 0 && (
+                  <p className="text-sm text-gray-400">{t('noIngredientsList')}</p>
+                )}
+                {allIngredients.some((_, i) => !checkedIngredients.has(i)) && (
+                  <a
+                    href={`https://wa.me/?text=${encodeURIComponent(
+                      `🛒 ${t('shoppingList')}\n\n` +
+                      allIngredients
+                        .filter((_, i) => !checkedIngredients.has(i))
+                        .map(({ ingredient }) => `• ${ingredient}`)
+                        .join('\n')
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full bg-green-500 hover:bg-green-600 text-white text-sm font-medium py-2 rounded-xl transition-colors"
+                  >
+                    <MessageCircle size={16} />
+                    Send shopping list to WhatsApp
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
           </div>
         )}
       </main>

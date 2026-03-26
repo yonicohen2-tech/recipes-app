@@ -276,8 +276,9 @@ export default function HomePage() {
   const filtered = recipes.filter((r) => {
     const matchSearch = !search || r.title.toLowerCase().includes(search.toLowerCase()) || (r.description || '').toLowerCase().includes(search.toLowerCase())
     const matchCourse = !courseFilter || r.course_type === courseFilter
-    const matchDietary = !dietaryFilter || r.dietary_tags.includes(dietaryFilter as DietaryTag)
-    const matchGluten = !glutenFilter || (glutenFilter === 'yes' ? r.dietary_tags.includes('gluten-free') : !r.dietary_tags.includes('gluten-free'))
+    const dtags = r.dietary_tags || []
+    const matchDietary = !dietaryFilter || dtags.includes(dietaryFilter as DietaryTag)
+    const matchGluten = !glutenFilter || (glutenFilter === 'yes' ? dtags.includes('gluten-free') : !dtags.includes('gluten-free'))
     const matchDifficulty = !difficultyFilter || r.difficulty === difficultyFilter
     const matchAuthor = !addedByFilter || r.added_by_name === addedByFilter
     const matchTime = !maxTime || (r.prep_time + r.cook_time) <= maxTime

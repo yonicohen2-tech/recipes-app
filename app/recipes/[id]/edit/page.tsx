@@ -10,7 +10,7 @@ import Navbar from '@/components/Navbar'
 import type { CourseType, DietaryTag, Difficulty, Recipe } from '@/lib/types'
 
 const COURSE_TYPES: CourseType[] = ['appetizer', 'first-course', 'main-course', 'side-dish', 'dessert', 'drink', 'snack']
-const KASHRUT_TAGS: DietaryTag[] = ['dairy', 'non-dairy', 'meat', 'vegan', 'vegetarian']
+const KASHRUT_TAGS: DietaryTag[] = ['dairy', 'non-dairy', 'meat', 'fish', 'vegan', 'vegetarian']
 const DIFFICULTIES: Difficulty[] = ['easy', 'medium', 'hard']
 
 export default function EditRecipePage() {

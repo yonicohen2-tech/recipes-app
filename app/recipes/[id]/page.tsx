@@ -235,43 +235,50 @@ export default function RecipeDetailPage() {
                 <p className="text-sm text-gray-600 whitespace-pre-line leading-relaxed" dir={detectDir(recipe.notes)}>{recipe.notes}</p>
               </div>
             )}
-            {recipe.file_url && (
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <a
-                  href={recipe.file_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-gray-400 hover:text-orange-500 text-sm transition-colors"
-                >
-                  <Download size={14} />
-                  {t('downloadOriginal')}
-                </a>
+            {(recipe.file_urls?.length || recipe.file_url) && (
+              <div className="mt-4 pt-4 border-t border-gray-100 space-y-1">
+                {(recipe.file_urls?.length ? recipe.file_urls : [recipe.file_url!]).map((url, i) => (
+                  <a
+                    key={i}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-gray-400 hover:text-orange-500 text-sm transition-colors"
+                  >
+                    <Download size={14} />
+                    {t('downloadOriginal')}{recipe.file_urls && recipe.file_urls.length > 1 ? ` (${i + 1})` : ''}
+                  </a>
+                ))}
               </div>
             )}
           </div>
         )}
 
         {/* File viewer fallback (for recipes without extracted content) */}
-        {!recipe.ingredients?.length && !recipe.instructions && recipe.file_url && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-4">
-            {recipe.file_type?.startsWith('image/') ? (
-              <img
-                src={recipe.file_url}
-                alt={recipe.title}
-                className="w-full rounded-lg max-h-[600px] object-contain"
-              />
-            ) : (
-              <a
-                href={recipe.file_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-orange-500 hover:underline font-medium"
-              >
-                <FileText size={20} />
-                {t('viewFile')}
-                <ExternalLink size={14} />
-              </a>
-            )}
+        {!recipe.ingredients?.length && !recipe.instructions && (recipe.file_urls?.length || recipe.file_url) && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-4 space-y-4">
+            {(recipe.file_urls?.length ? recipe.file_urls : [recipe.file_url!]).map((url, i) => (
+              recipe.file_type?.startsWith('image/') && i === 0 ? (
+                <img
+                  key={i}
+                  src={url}
+                  alt={recipe.title}
+                  className="w-full rounded-lg max-h-[600px] object-contain"
+                />
+              ) : (
+                <a
+                  key={i}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-orange-500 hover:underline font-medium"
+                >
+                  <FileText size={20} />
+                  {t('viewFile')}{recipe.file_urls && recipe.file_urls.length > 1 ? ` (${i + 1})` : ''}
+                  <ExternalLink size={14} />
+                </a>
+              )
+            ))}
           </div>
         )}
 

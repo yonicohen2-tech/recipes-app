@@ -1,4 +1,4 @@
-export type DietaryTag = 'dairy' | 'non-dairy' | 'gluten-free' | 'vegan' | 'vegetarian' | 'meat'
+export type DietaryTag = 'dairy' | 'non-dairy' | 'gluten-free' | 'vegan' | 'vegetarian' | 'meat' | 'fish'
 
 export function detectDir(text: string | null | undefined): 'rtl' | 'ltr' {
   if (!text) return 'ltr'
@@ -18,6 +18,7 @@ export interface Recipe {
   cook_time: number
   file_url: string | null
   file_type: string | null
+  file_urls: string[] | null
   video_url: string | null
   ingredients: string[]
   instructions: string | null

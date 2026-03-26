@@ -8,10 +8,10 @@ import { createClient } from '@/lib/supabase/client'
 import { useLang } from '@/lib/context'
 import Navbar from '@/components/Navbar'
 import type { CourseType, DietaryTag, Difficulty } from '@/lib/types'
-import { Upload, Sparkles, Loader2, Link2 } from 'lucide-react'
+import { Upload, Sparkles, Loader2, Link2, X } from 'lucide-react'
 
 const COURSE_TYPES: CourseType[] = ['appetizer', 'first-course', 'main-course', 'side-dish', 'dessert', 'drink', 'snack']
-const KASHRUT_TAGS: DietaryTag[] = ['dairy', 'non-dairy', 'meat', 'vegan', 'vegetarian']
+const KASHRUT_TAGS: DietaryTag[] = ['dairy', 'non-dairy', 'meat', 'fish', 'vegan', 'vegetarian']
 const DIFFICULTIES: Difficulty[] = ['easy', 'medium', 'hard']
 
 export default function AddRecipePage() {
@@ -26,7 +26,7 @@ export default function AddRecipePage() {
   const [videoOptions, setVideoOptions] = useState<{id:string,title:string,channel:string,thumbnail:string,url:string}[]>([])
   const [pastedText, setPastedText] = useState('')
   const [error, setError] = useState('')
-  const [file, setFile] = useState<File | null>(null)
+  const [files, setFiles] = useState<File[]>([])
 
   const [form, setForm] = useState({
     title: '',
@@ -50,22 +50,27 @@ export default function AddRecipePage() {
     })
   }, [])
 
-  const handleFileChange = async (selectedFile: File) => {
-    setFile(selectedFile)
+  const handleFilesChange = async (selectedFiles: FileList) => {
+    const newFiles = Array.from(selectedFiles)
+    setFiles((prev) => [...prev, ...newFiles])
     setExtracted(false)
     setError('')
 
-    const supported = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp']
-    if (!supported.includes(selectedFile.type)) return
+    // Auto-extract only when a single file is selected
+    if (newFiles.length !== 1) return
+    const extractable = newFiles.find((f) =>
+      ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(f.type)
+    )
+    if (!extractable) return
 
-    if (selectedFile.size > 4 * 1024 * 1024) {
+    if (extractable.size > 4 * 1024 * 1024) {
       setError('File is too large (max 4MB). Please use a smaller image or compress the PDF.')
       return
     }
 
     setExtracting(true)
     const fd = new FormData()
-    fd.append('file', selectedFile)
+    fd.append('file', extractable)
 
     try {
       const res = await fetch('/api/extract-recipe', { method: 'POST', body: fd })
@@ -229,21 +234,26 @@ export default function AddRecipePage() {
 
     let file_url = null
     let file_type = null
+    const file_urls: string[] = []
 
-    if (file) {
-      const ext = file.name.split('.').pop()
-      const path = `${user.id}/${Date.now()}.${ext}`
+    for (const f of files) {
+      const ext = f.name.split('.').pop()
+      const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
       const { error: uploadError } = await supabase.storage
         .from('recipe-files')
-        .upload(path, file)
+        .upload(path, f)
       if (uploadError) {
         setError(uploadError.message)
         setLoading(false)
         return
       }
       const { data: urlData } = supabase.storage.from('recipe-files').getPublicUrl(path)
-      file_url = urlData.publicUrl
-      file_type = file.type
+      file_urls.push(urlData.publicUrl)
+    }
+
+    if (file_urls.length > 0) {
+      file_url = file_urls[0]
+      file_type = files[0].type
     }
 
     const { error: insertError } = await supabase.from('recipes').insert({
@@ -257,6 +267,7 @@ export default function AddRecipePage() {
       video_url: form.video_url || null,
       file_url,
       file_type,
+      file_urls: file_urls.length > 0 ? file_urls : null,
       ingredients: form.ingredients,
       instructions: form.instructions || null,
       servings: parseInt(form.servings) || null,
@@ -416,7 +427,7 @@ export default function AddRecipePage() {
           {/* File upload */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('recipeFile')}</label>
-            <label className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${
+            <label className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${
               extracted ? 'border-green-400 bg-green-50' : extracting ? 'border-orange-300 bg-orange-50' : 'border-gray-200 hover:border-orange-300 hover:bg-orange-50'
             }`}>
               {extracting ? (
@@ -427,22 +438,38 @@ export default function AddRecipePage() {
               ) : extracted ? (
                 <>
                   <Sparkles size={24} className="text-green-500 mb-1" />
-                  <span className="text-sm text-green-600 font-medium">Recipe extracted! Fields filled below.</span>
-                  <span className="text-xs text-gray-400 mt-0.5">{file?.name}</span>
+                  <span className="text-sm text-green-600 font-medium">Recipe extracted!</span>
                 </>
               ) : (
                 <>
                   <Upload size={24} className="text-gray-400 mb-1" />
-                  <span className="text-sm text-gray-500">{file ? file.name : 'PDF, JPG, PNG, DOCX... (auto-fills the form)'}</span>
+                  <span className="text-sm text-gray-500">PDF, JPG, PNG, DOCX... — click to add files</span>
                 </>
               )}
               <input
                 type="file"
+                multiple
                 accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.mp4,.mov,.avi"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileChange(f) }}
+                onChange={(e) => { if (e.target.files?.length) handleFilesChange(e.target.files) }}
                 className="hidden"
               />
             </label>
+            {files.length > 0 && (
+              <ul className="mt-2 space-y-1">
+                {files.map((f, i) => (
+                  <li key={i} className="flex items-center justify-between text-sm text-gray-600 bg-gray-50 rounded-lg px-3 py-1.5">
+                    <span className="truncate">{f.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}
+                      className="ml-2 text-gray-400 hover:text-red-500 shrink-0"
+                    >
+                      <X size={14} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           {/* Video URL */}

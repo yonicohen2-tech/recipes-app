@@ -25,6 +25,7 @@ export const translations = {
     vegan: 'Vegan',
     vegetarian: 'Vegetarian',
     meat: 'Meat',
+    fish: 'Fish',
     // Difficulty
     easy: 'Easy',
     medium: 'Medium',
@@ -85,6 +86,8 @@ export const translations = {
     pickRecipes: 'Pick recipes from the categories below',
     totalTime: 'Total time',
     menuEmpty: 'Select recipes from the categories above to build your menu.',
+    shoppingList: 'Shopping List',
+    noIngredientsList: 'No ingredients available for selected recipes.',
   },
   he: {
     appName: 'TheCohenCookingClan',
@@ -112,6 +115,7 @@ export const translations = {
     vegan: 'טבעוני',
     vegetarian: 'צמחוני',
     meat: 'בשרי',
+    fish: 'דגים',
     // Difficulty
     easy: 'קל',
     medium: 'בינוני',
@@ -172,6 +176,8 @@ export const translations = {
     pickRecipes: 'בחר מתכונים מהקטגוריות למטה',
     totalTime: 'זמן כולל',
     menuEmpty: 'בחר מתכונים מהקטגוריות למעלה כדי לבנות את התפריט שלך.',
+    shoppingList: 'רשימת קניות',
+    noIngredientsList: 'אין מרכיבים למתכונים שנבחרו.',
   },
 }
 
